@@ -95,14 +95,10 @@ nmsThreshold = 0.4   # Non-maximum suppression threshold
 inpWidth = 416       # Width of network's input image
 inpHeight = 416      # Height of network's input image
 
-# Load names of classes from file
-classes_file 'coco.names'
 config_file = 'yolov3.cfg'
 weights_file = 'yolov3.weights'
 
-classes = None
-with open(classes_file, 'rt') as f:
-    classes = f.read().rstrip('\n').split('\n')
+classes = ['person','car','bicycle', 'truck']
 
 # load configuration and weight files for the model and load the network using them
 
@@ -123,7 +119,7 @@ def yolo_net(frame):
     results = net.forward(output_layer_names)
 
     # remove the bounding boxes with low confidence
-    confThreshold = cv2.getTrackbarPos(trackbarName,windowName) / 100
+    confThreshold = 0.01
     classIDs, confidences, boxes = postprocess(frame, results, confThreshold, nmsThreshold)
     # draw resulting detections on image
     for detected_object in range(0, len(boxes)):

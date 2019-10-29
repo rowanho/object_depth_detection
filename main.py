@@ -17,7 +17,8 @@
 import cv2
 import os
 import numpy as np
-from yolo import drawPred, postprocess
+from custom_yolo import yolo_net
+
 # where is the data ? - set this to where you have it
 
 master_path_to_dataset = "TTBB-durham-02-10-17-sub10"; # ** need to edit this **
@@ -58,99 +59,28 @@ left_file_list = sorted(os.listdir(full_path_directory_left));
 #        StereoSGBM_create(minDisparity, numDisparities, blockSize[, P1[, P2[,
 # disp12MaxDiff[, preFilterCap[, uniquenessRatio[, speckleWindowSize[, speckleRange[, mode]]]]]]]]) -> retval
 
-max_disparity = 128;
-stereoProcessor = cv2.StereoSGBM_create(0, max_disparity, 21);
 
 for filename_left in left_file_list:
-
-    # skip forward to start a file we specify by timestamp (if this is set)
 
     if ((len(skip_forward_file_pattern) > 0) and not(skip_forward_file_pattern in filename_left)):
         continue;
     elif ((len(skip_forward_file_pattern) > 0) and (skip_forward_file_pattern in filename_left)):
         skip_forward_file_pattern = "";
 
-    # from the left image filename get the correspondoning right image
-
     filename_right = filename_left.replace("_L", "_R");
     full_path_filename_left = os.path.join(full_path_directory_left, filename_left);
     full_path_filename_right = os.path.join(full_path_directory_right, filename_right);
 
-    # for sanity print out these filenames
-
-    print(full_path_filename_left);
-    print(full_path_filename_right);
-    print();
-
-    # check the file is a PNG file (left) and check a correspondoning right image
-    # actually exists
 
     if ('.png' in filename_left) and (os.path.isfile(full_path_filename_right)) :
-
-        # read left and right images and display in windows
-        # N.B. despite one being grayscale both are in fact stored as 3-channel
-        # RGB images so load both as such
-
         imgL = cv2.imread(full_path_filename_left, cv2.IMREAD_COLOR)
         cv2.imshow('left image',imgL)
-
-        imgR = cv2.imread(full_path_filename_right, cv2.IMREAD_COLOR)
-        cv2.imshow('right image',imgR)
+        
+        yolo_net(imgL)
+        cv2.imshow('Image with detection', imgL)
 
         print("-- files loaded successfully");
         print();
-
-        # remember to convert to grayscale (as the disparity matching works on grayscale)
-        # N.B. need to do for both as both are 3-channel images
-
-        grayL = cv2.cvtColor(imgL,cv2.COLOR_BGR2GRAY);
-        grayR = cv2.cvtColor(imgR,cv2.COLOR_BGR2GRAY);
-
-        # perform preprocessing - raise to the power, as this subjectively appears
-        # to improve subsequent disparity calculation
-
-        grayL = np.power(grayL, 0.75).astype('uint8');
-        grayR = np.power(grayR, 0.75).astype('uint8');
-
-        # compute disparity image from undistorted and rectified stereo images
-        # that we have loaded
-        # (which for reasons best known to the OpenCV developers is returned scaled by 16)
-
-        disparity = stereoProcessor.compute(grayL,grayR);
-
-        # filter out noise and speckles (adjust parameters as needed)
-
-        dispNoiseFilter = 5; # increase for more agressive filtering
-        cv2.filterSpeckles(disparity, 0, 4000, max_disparity - dispNoiseFilter);
-
-        # scale the disparity to 8-bit for viewing
-        # divide by 16 and convert to 8-bit image (then range of values should
-        # be 0 -> max_disparity) but in fact is (-1 -> max_disparity - 1)
-        # so we fix this also using a initial threshold between 0 and max_disparity
-        # as disparity=-1 means no disparity available
-
-        _, disparity = cv2.threshold(disparity,0, max_disparity * 16, cv2.THRESH_TOZERO);
-        disparity_scaled = (disparity / 16.).astype(np.uint8);
-
-        # crop disparity to chop out left part where there are with no disparity
-        # as this area is not seen by both cameras and also
-        # chop out the bottom area (where we see the front of car bonnet)
-
-        if (crop_disparity):
-            width = np.size(disparity_scaled, 1);
-            disparity_scaled = disparity_scaled[0:390,135:width];
-
-        # display image (scaling it to the full 0->255 range based on the number
-        # of disparities in use for the stereo part)
-
-        cv2.imshow("disparity", (disparity_scaled * (256. / max_disparity)).astype(np.uint8));
-
-        # keyboard input for exit (as standard), save disparity and cropping
-        # exit - x
-        # save - s
-        # crop - c
-        # pause - space
-
         key = cv2.waitKey(40 * (not(pause_playback))) & 0xFF; # wait 40ms (i.e. 1000ms / 25 fps = 40 ms)
         if (key == ord('x')):       # exit
             break; # exit
