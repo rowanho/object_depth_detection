@@ -98,7 +98,7 @@ inpHeight = 416      # Height of network's input image
 config_file = 'yolov3.cfg'
 weights_file = 'yolov3.weights'
 
-classes = ['person','car','bicycle', 'truck']
+classes = ['person','bicycle','car','motorbike','aeroplane','bus','train','truck', 'boat']
 
 # load configuration and weight files for the model and load the network using them
 
@@ -121,8 +121,11 @@ def yolo_net(frame):
     # remove the bounding boxes with low confidence
     confThreshold = 0.01
     classIDs, confidences, boxes = postprocess(frame, results, confThreshold, nmsThreshold)
+
     # draw resulting detections on image
     for detected_object in range(0, len(boxes)):
+        if classIDs[detected_object] >= len(classes):
+            continue
         box = boxes[detected_object]
         left = box[0]
         top = box[1]
