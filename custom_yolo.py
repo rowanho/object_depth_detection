@@ -131,6 +131,12 @@ def yolo_net(frame, depth_points):
         top = box[1]
         width = box[2]
         height = box[3]
-        central_depth = depth_points[top + height//2][left + width//2]
-        drawPred(frame, classes[classIDs[detected_object]], confidences[detected_object], left, top, left + width, top + height, (255, 178, 50), central_depth)
+        quart_y = top + height // 4
+        three_quart_y = top + (3 * height) // 4
+        quart_x = left + width // 4
+        three_quart_x = left + (3 * width) // 4
+        central_quarter = depth_points[quart_y:three_quart_y, quart_x:three_quart_x]
+        central_quarter_avg = np.average(central_quarter)
+        drawPred(frame, classes[classIDs[detected_object]], confidences[detected_object],
+                left, top, left + width, top + height, (255, 178, 50), central_quarter_avg)
 

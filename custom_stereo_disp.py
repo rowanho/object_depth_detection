@@ -14,8 +14,15 @@ stereo_camera_baseline_m = 0.2090607502     # camera baseline in metres
 image_centre_h = 262.0
 image_centre_w = 474.5
 
-## project_disparity_to_3d : project a given disparity image
-## (uncropped, unscaled) to a set of 3D points with optional colour
+## Numpy vectorised function to calcuate depth
+def depth(disp, f, B):
+    if disp > 0:
+        return (f * B) / disp
+    else:
+        return 0.0
+        
+        
+## Project a given disparity image to have 3d depth points
 
 def project_disparity_to_2d_with_depth(disparity, max_disparity):
     f = camera_focal_length_px
@@ -24,18 +31,9 @@ def project_disparity_to_2d_with_depth(disparity, max_disparity):
     height, width = disparity.shape[:2]
     
     points = np.zeros((height,width))
-    # assume a minimal disparity of 2 pixels is possible to get Zmax
-    # Zmax = ((f * B) / 2)
+    vec_depth = np.vectorize(depth)
     
-    for y in range(height): # 0 - height is the y axis index
-        for x in range(width): # 0 - width is the x axis index
-
-            # if we have a valid non-zero disparity
-            if (disparity[y,x] > 0):
-                # calculate depth Z
-                Z = (f * B) / disparity[y,x]
-                # add to points
-                points[y][x] = Z
+    points = vec_depth(disparity, f, B)
     return points
     
 

@@ -1,19 +1,3 @@
-#####################################################################
-
-# Example : load, display and compute SGBM disparity
-# for a set of rectified stereo images from a  directory structure
-# of left-images / right-images with filesname DATE_TIME_STAMP_{L|R}.png
-
-# basic illustrative python script for use with provided stereo datasets
-
-# Author : Toby Breckon, toby.breckon@durham.ac.uk
-
-# Copyright (c) 2017 Department of Computer Science,
-#                    Durham University, UK
-# License : LGPL - http://www.gnu.org/licenses/lgpl.html
-
-#####################################################################
-
 import cv2
 import os
 import numpy as np
