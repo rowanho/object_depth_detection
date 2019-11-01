@@ -9,19 +9,19 @@ import numpy as np
 # left, top, right, bottom: rectangle parameters for detection
 # colour: to draw detection rectangle in
 
-def drawPred(image, class_name, confidence, left, top, right, bottom, colour, depth):
+def drawPred(image, class_name, left, top, right, bottom, colour, depth):
     # Draw a bounding box.
     cv2.rectangle(image, (left, top), (right, bottom), colour, 3)
 
     # construct label
-    label = '%s:%.2f\n Depth: %.2f' % (class_name, confidence, depth)
+    label = '%s : %.2fm' % (class_name, depth)
 
     #Display the label at the top of the bounding box
-    labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+    labelSize, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
     top = max(top, labelSize[1])
-    cv2.rectangle(image, (left, top - round(1.5*labelSize[1])),
-        (left + round(1.5*labelSize[0]), top + baseLine), (255, 255, 255), cv2.FILLED)
-    cv2.putText(image, label, (left, top), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,0,0), 1)
+    cv2.rectangle(image, (left, bottom  + round(1.0*labelSize[1])),
+        (left + round(1.0*labelSize[0]), bottom + baseline - round(1.5*labelSize[1])), (255, 255, 255), cv2.FILLED)
+    cv2.putText(image, label, (left, bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
 
 
 # Remove the bounding boxes with low confidence using non-maxima suppression
@@ -111,24 +111,26 @@ net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
 # change to cv2.dnn.DNN_TARGET_CPU (slower) if this causes issues (should fail gracefully if OpenCL not available)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
-def yolo_net(frame, depth_points):
+def yolo_net(frame, depth_points, crop_y, crop_x):
+    # Crop the frame to run the detection on
+    cropped_frame = frame[crop_y[0]:crop_y[1], crop_x[0]:crop_x[1]]
     # create a 4D tensor (OpenCV 'blob') from image frame (pixels scaled 0->1, image resized)
-    tensor = cv2.dnn.blobFromImage(frame, 1/255, (inpWidth, inpHeight), [0,0,0], 1, crop=False)
+    tensor = cv2.dnn.blobFromImage(cropped_frame, 1/255, (inpWidth, inpHeight), [0,0,0], 1, crop=False)
     net.setInput(tensor)
     # runs forward inference to get output of the final output layers
     results = net.forward(output_layer_names)
 
     # remove the bounding boxes with low confidence
     confThreshold = 0.01
-    classIDs, confidences, boxes = postprocess(frame, results, confThreshold, nmsThreshold)
+    classIDs, confidences, boxes = postprocess(cropped_frame, results, confThreshold, nmsThreshold)
 
     # draw resulting detections on image
     for detected_object in range(0, len(boxes)):
         if classIDs[detected_object] >= len(classes):
             continue
         box = boxes[detected_object]
-        left = box[0]
-        top = box[1]
+        left = box[0] + crop_x[0]
+        top = box[1] + crop_y[0]
         width = box[2]
         height = box[3]
         quart_y = top + height // 4
@@ -136,7 +138,7 @@ def yolo_net(frame, depth_points):
         quart_x = left + width // 4
         three_quart_x = left + (3 * width) // 4
         central_quarter = depth_points[quart_y:three_quart_y, quart_x:three_quart_x]
-        central_quarter_avg = np.average(central_quarter)
-        drawPred(frame, classes[classIDs[detected_object]], confidences[detected_object],
+        central_quarter_avg = np.median(central_quarter)
+        drawPred(frame, classes[classIDs[detected_object]],
                 left, top, left + width, top + height, (255, 178, 50), central_quarter_avg)
 

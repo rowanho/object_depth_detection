@@ -40,7 +40,7 @@ def project_disparity_to_2d_with_depth(disparity, max_disparity):
 # Returns 2d points and 3d depth with format [x(2d),y(2d),z(3d)]
 # imgL - The left image
 # imgR - The right image
-def get_depth_points(imgL, imgR, crop_disparity=False):
+def get_depth_points(imgL, imgR):
     # remember to convert to grayscale (as the disparity matching works on grayscale)
     # N.B. need to do for both as both are 3-channel images
 
@@ -71,15 +71,7 @@ def get_depth_points(imgL, imgR, crop_disparity=False):
 
     _, disparity = cv2.threshold(disparity,0, max_disparity * 16, cv2.THRESH_TOZERO)
     disparity_scaled = (disparity / 16.).astype(np.uint8)
-    
-    # crop disparity to chop out left part where there are with no disparity
-    # as this area is not seen by both cameras and also
-    # chop out the bottom area (where we see the front of car bonnet)
-
-    if (crop_disparity):
-        width = np.size(disparity_scaled, 1)
-        disparity_scaled = disparity_scaled[0:390,135:width]
-    
+        
     points = project_disparity_to_2d_with_depth(disparity_scaled, max_disparity)
     
     return points

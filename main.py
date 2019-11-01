@@ -3,21 +3,17 @@ import os
 import numpy as np
 from custom_yolo import yolo_net
 from custom_stereo_disp import get_depth_points
-# where is the data ? - set this to where you have it
 
-master_path_to_dataset = "TTBB-durham-02-10-17-sub10" # ** need to edit this **
-directory_to_cycle_left = "left-images"     # edit this if needed
-directory_to_cycle_right = "right-images"   # edit this if needed
-
-# set this to a file timestamp to start from (empty is first example - outside lab)
-# e.g. set to 1506943191.487683 for the end of the Bailey, just as the vehicle turns
+# set to dataset path
+master_path_to_dataset = "TTBB-durham-02-10-17-sub10"
+directory_to_cycle_left = "left-images"     
+directory_to_cycle_right = "right-images"  
 
 skip_forward_file_pattern = "" # set to timestamp to skip forward to
 
 crop_disparity = False # display full or cropped disparity image
 pause_playback = False # pause until key press after each image
 
-#####################################################################
 
 # resolve full directory location of data set for left / right images
 
@@ -28,22 +24,7 @@ full_path_directory_right =  os.path.join(master_path_to_dataset, directory_to_c
 
 left_file_list = sorted(os.listdir(full_path_directory_left))
 
-# setup the disparity stereo processor to find a maximum of 128 disparity values
-# (adjust parameters if needed - this will effect speed to processing)
-
-# uses a modified H. Hirschmuller algorithm [Hirschmuller, 2008] that differs (see opencv manual)
-# parameters can be adjusted, current ones from [Hamilton / Breckon et al. 2013]
-
-# FROM manual: stereoProcessor = cv2.StereoSGBM(numDisparities=128, SADWindowSize=21)
-
-# From help(cv2): StereoBM_create(...)
-#        StereoBM_create([, numDisparities[, blockSize]]) -> retval
-#
-#    StereoSGBM_create(...)
-#        StereoSGBM_create(minDisparity, numDisparities, blockSize[, P1[, P2[,
-# disp12MaxDiff[, preFilterCap[, uniquenessRatio[, speckleWindowSize[, speckleRange[, mode]]]]]]]]) -> retval
-
-
+# Loop through files
 for filename_left in left_file_list:
 
     if ((len(skip_forward_file_pattern) > 0) and not(skip_forward_file_pattern in filename_left)):
@@ -61,7 +42,7 @@ for filename_left in left_file_list:
         cv2.imshow('left image',imgL)
         depth_points = get_depth_points(imgL, imgR)
         
-        yolo_net(imgL, depth_points)
+        yolo_net(imgL, depth_points,(0,390),(135,np.size(imgL,1)))
         cv2.imshow('Image with detection', imgL)
 
         print("-- files loaded successfully")
@@ -85,4 +66,3 @@ for filename_left in left_file_list:
 
 cv2.destroyAllWindows()
 
-#####################################################################
