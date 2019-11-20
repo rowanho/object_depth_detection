@@ -9,6 +9,7 @@ import numpy as np
 # left, top, right, bottom: rectangle parameters for detection
 # colour: to draw detection rectangle in
 
+
 def drawPred(image, class_name, left, top, right, bottom, colour, depth):
     # Draw a bounding box.
     cv2.rectangle(image, (left, top), (right, bottom), colour, 3)
@@ -16,12 +17,32 @@ def drawPred(image, class_name, left, top, right, bottom, colour, depth):
     # construct label
     label = '%s : %.2fm' % (class_name, depth)
 
-    #Display the label at the top of the bounding box
-    labelSize, baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+    # Display the label at the top of the bounding box
+    labelSize, baseline = cv2.getTextSize(
+        label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
     top = max(top, labelSize[1])
-    cv2.rectangle(image, (left, bottom  + round(1.0*labelSize[1])),
-        (left + round(1.0*labelSize[0]), bottom + baseline - round(1.5*labelSize[1])), (255, 255, 255), cv2.FILLED)
-    cv2.putText(image, label, (left, bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1)
+    cv2.rectangle(
+        image,
+        (left,
+         bottom +
+         round(
+             1.0 *
+             labelSize[1])),
+        (left +
+         round(
+             1.0 *
+             labelSize[0]),
+            bottom +
+            baseline -
+            round(
+                1.5 *
+                labelSize[1])),
+        (255,
+         255,
+         255),
+        cv2.FILLED)
+    cv2.putText(image, label, (left, bottom),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
 
 # Remove the bounding boxes with low confidence using non-maxima suppression
@@ -68,7 +89,11 @@ def postprocess(image, results, threshold_confidence, threshold_nms):
     confidences_nms = []
     boxes_nms = []
 
-    indices = cv2.dnn.NMSBoxes(boxes, confidences, threshold_confidence, threshold_nms)
+    indices = cv2.dnn.NMSBoxes(
+        boxes,
+        confidences,
+        threshold_confidence,
+        threshold_nms)
     for i in indices:
         i = i[0]
         classIds_nms.append(classIds[i])
@@ -81,10 +106,12 @@ def postprocess(image, results, threshold_confidence, threshold_nms):
 # Get the names of the output layers of the CNN network
 # net : an OpenCV DNN module network object
 
+
 def getOutputsNames(net):
     # Get the names of all the layers in the network
     layersNames = net.getLayerNames()
-    # Get the names of the output layers, i.e. the layers with unconnected outputs
+    # Get the names of the output layers, i.e. the layers with unconnected
+    # outputs
     return [layersNames[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
 
@@ -98,20 +125,34 @@ inpHeight = 416      # Height of network's input image
 config_file = 'yolov3.cfg'
 weights_file = 'yolov3.weights'
 
-classes = ['person','bicycle','car','motorbike','aeroplane','bus','train','truck', 'boat']
+classes = [
+    'person',
+    'bicycle',
+    'car',
+    'motorbike',
+    'aeroplane',
+    'bus',
+    'train',
+    'truck',
+    'boat']
 
-# load configuration and weight files for the model and load the network using them
+# load configuration and weight files for the model and load the network
+# using them
 
 net = cv2.dnn.readNetFromDarknet(config_file, weights_file)
 output_layer_names = getOutputsNames(net)
 
- # defaults DNN_BACKEND_INFERENCE_ENGINE if Intel Inference Engine lib available or DNN_BACKEND_OPENCV otherwise
+# defaults DNN_BACKEND_INFERENCE_ENGINE if Intel Inference Engine lib
+# available or DNN_BACKEND_OPENCV otherwise
 net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
 
-# change to cv2.dnn.DNN_TARGET_CPU (slower) if this causes issues (should fail gracefully if OpenCL not available)
+# change to cv2.dnn.DNN_TARGET_CPU (slower) if this causes issues (should
+# fail gracefully if OpenCL not available)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
 # Power transform + histogram equalization
+
+
 def preprocess(img):
     img = np.power(img, 0.85).astype('uint8')
     b, g, r = cv2.split(img)
@@ -120,20 +161,24 @@ def preprocess(img):
     blue = cv2.equalizeHist(b)
     img = cv2.merge((blue, green, red))
     return img
-    
+
+
 def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
     # Crop the frame to run the detection on
     cropped_frame = frame[crop_y[0]:crop_y[1], crop_x[0]:crop_x[1]]
     cropped_frame = preprocess(cropped_frame)
-    # create a 4D tensor (OpenCV 'blob') from image frame (pixels scaled 0->1, image resized)
-    tensor = cv2.dnn.blobFromImage(cropped_frame, 1/255, (inpWidth, inpHeight), [0,0,0], 1, crop=False)
+    # create a 4D tensor (OpenCV 'blob') from image frame (pixels scaled 0->1,
+    # image resized)
+    tensor = cv2.dnn.blobFromImage(
+        cropped_frame, 1 / 255, (inpWidth, inpHeight), [0, 0, 0], 1, crop=False)
     net.setInput(tensor)
     # runs forward inference to get output of the final output layers
     results = net.forward(output_layer_names)
 
     # remove the bounding boxes with low confidence
     confThreshold = 0.01
-    classIDs, confidences, boxes = postprocess(cropped_frame, results, confThreshold, nmsThreshold)
+    classIDs, confidences, boxes = postprocess(
+        cropped_frame, results, confThreshold, nmsThreshold)
 
     # draw resulting detections on image
     for detected_object in range(0, len(boxes)):
@@ -149,7 +194,7 @@ def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
         #quart_x = left + width // 4
         #three_quart_x = left + (3 * width) // 4
         #central_quarter = depth_points[quart_y:three_quart_y, quart_x:three_quart_x]
-        box = depth_points[top: top + height,left:left + width]
+        box = depth_points[top: top + height, left:left + width]
         if box.shape[0] == 0 or box.shape[1] == 0:
             continue
         if is_sparse:
@@ -157,5 +202,4 @@ def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
         else:
             avg = np.percentile(box, 25)
         drawPred(frame, classes[classIDs[detected_object]],
-            left, top, left + width, top + height, (255, 178, 50), avg)
-    
+                 left, top, left + width, top + height, (255, 178, 50), avg)
