@@ -111,9 +111,20 @@ net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
 # change to cv2.dnn.DNN_TARGET_CPU (slower) if this causes issues (should fail gracefully if OpenCL not available)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
+# Power transform + histogram equalization
+def preprocess(img):
+    img = np.power(img, 0.85).astype('uint8')
+    b, g, r = cv2.split(img)
+    red = cv2.equalizeHist(r)
+    green = cv2.equalizeHist(g)
+    blue = cv2.equalizeHist(b)
+    img = cv2.merge((blue, green, red))
+    return img
+    
 def yolo_net(frame, depth_points, crop_y, crop_x):
     # Crop the frame to run the detection on
     cropped_frame = frame[crop_y[0]:crop_y[1], crop_x[0]:crop_x[1]]
+    cropped_frame = preprocess(cropped_frame)
     # create a 4D tensor (OpenCV 'blob') from image frame (pixels scaled 0->1, image resized)
     tensor = cv2.dnn.blobFromImage(cropped_frame, 1/255, (inpWidth, inpHeight), [0,0,0], 1, crop=False)
     net.setInput(tensor)
@@ -133,12 +144,17 @@ def yolo_net(frame, depth_points, crop_y, crop_x):
         top = box[1] + crop_y[0]
         width = box[2]
         height = box[3]
-        quart_y = top + height // 4
-        three_quart_y = top + (3 * height) // 4
-        quart_x = left + width // 4
-        three_quart_x = left + (3 * width) // 4
-        central_quarter = depth_points[quart_y:three_quart_y, quart_x:three_quart_x]
-        central_quarter_avg = np.median(central_quarter)
-        drawPred(frame, classes[classIDs[detected_object]],
-                left, top, left + width, top + height, (255, 178, 50), central_quarter_avg)
+        #quart_y = top + height // 4
+        #three_quart_y = top + (3 * height) // 4
+        #quart_x = left + width // 4
+        #three_quart_x = left + (3 * width) // 4
+        #central_quarter = depth_points[quart_y:three_quart_y, quart_x:three_quart_x]
+        box = depth_points[top: top + height,left:left + width]
+        print(box.shape)
+        try:
+            avg = np.percentile(box, 25)
+            drawPred(frame, classes[classIDs[detected_object]],
+                left, top, left + width, top + height, (255, 178, 50), avg)
+        except IndexError:
+            continue
 

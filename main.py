@@ -3,7 +3,7 @@ import os
 import numpy as np
 from custom_yolo import yolo_net
 from custom_stereo_disp import get_depth_points
-
+from surf import get_disp_map
 # set to dataset path
 master_path_to_dataset = "TTBB-durham-02-10-17-sub10"
 directory_to_cycle_left = "left-images"     
@@ -42,7 +42,7 @@ for filename_left in left_file_list:
         cv2.imshow('left image',imgL)
         depth_points = get_depth_points(imgL, imgR)
         
-        yolo_net(imgL, depth_points,(0,390),(135,np.size(imgL,1)))
+        yolo_net(imgL, depth_points,(0,390),(0,np.size(imgL,1)))
         cv2.imshow('Image with detection', imgL)
 
         print("-- files loaded successfully")

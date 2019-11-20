@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
-
-max_disparity = 128
+from surf import get_disp_map
+max_disparity = 64
 left_matcher = cv2.StereoSGBM_create(0, max_disparity, 21)
 right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
 wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=left_matcher)
-wls_filter.setLambda(8000)
+wls_filter.setLambda(80000)
 wls_filter.setSigmaColor(1.2)
 
 
@@ -50,7 +50,11 @@ def disp_with_wls_filtering(imgL, imgR):
     filteredDisp = wls_filter.filter(displ, imgL, None, dispr)
     return filteredDisp                                    
     
-
+def preprocess(img):
+    img = np.power(img, 0.85).astype('uint8')
+    img = cv2.equalizeHist(img)
+    return img
+    
 # Returns 2d points and 3d depth with format [x(2d),y(2d),z(3d)]
 # imgL - The left image
 # imgR - The right image
@@ -61,12 +65,13 @@ def get_depth_points(imgL, imgR):
 
     grayL = cv2.cvtColor(imgL,cv2.COLOR_BGR2GRAY)
     grayR = cv2.cvtColor(imgR,cv2.COLOR_BGR2GRAY)
-    
+    get_disp_map(grayL, grayR)
+
     # perform preprocessing - raise to the power, as this subjectively appears
     # to improve subsequent disparity calculation
 
-    grayL = np.power(grayL, 0.75).astype('uint8')
-    grayR = np.power(grayR, 0.75).astype('uint8')
+    grayL = preprocess(grayL)
+    grayR = preprocess(grayR)
 
     # compute disparity image from undistorted and rectified stereo images
     # that we have loaded
@@ -76,7 +81,7 @@ def get_depth_points(imgL, imgR):
 
     # filter out noise and speckles (adjust parameters as needed)
 
-    dispNoiseFilter = 5 # increase for more agressive filtering
+    dispNoiseFilter = 10 # increase for more agressive filtering
     cv2.filterSpeckles(disparity, 0, 4000, max_disparity - dispNoiseFilter)
     
     # Apply wls filter to disparity
