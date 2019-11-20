@@ -90,6 +90,4 @@ def get_sparse_disp(img1, img2):
         yl = int(keypoints1[m.queryIdx].pt[1])
         xr = int(keypoints2[m.trainIdx].pt[0])
         disp_img[yl, xl] = abs(xl - xr)
-    disp_img = \
-        cv2.normalize(disp_img, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX)         
     return disp_img    
