@@ -3,7 +3,6 @@ import os
 import numpy as np
 from custom_yolo import yolo_net
 from custom_stereo_disp import get_depth_points
-from surf import get_disp_map
 # set to dataset path
 master_path_to_dataset = "TTBB-durham-02-10-17-sub10"
 directory_to_cycle_left = "left-images"     
@@ -11,7 +10,6 @@ directory_to_cycle_right = "right-images"
 
 skip_forward_file_pattern = "" # set to timestamp to skip forward to
 
-crop_disparity = False # display full or cropped disparity image
 pause_playback = False # pause until key press after each image
 
 
@@ -24,6 +22,7 @@ full_path_directory_right =  os.path.join(master_path_to_dataset, directory_to_c
 
 left_file_list = sorted(os.listdir(full_path_directory_left))
 
+is_sparse = True
 # Loop through files
 for filename_left in left_file_list:
 
@@ -40,9 +39,9 @@ for filename_left in left_file_list:
         imgL = cv2.imread(full_path_filename_left, cv2.IMREAD_COLOR)
         imgR = cv2.imread(full_path_filename_right,cv2.IMREAD_COLOR)
         cv2.imshow('left image',imgL)
-        depth_points = get_depth_points(imgL, imgR)
+        depth_points = get_depth_points(imgL, imgR, is_sparse)
         
-        yolo_net(imgL, depth_points,(0,390),(0,np.size(imgL,1)))
+        yolo_net(imgL, depth_points,is_sparse,(0,390),(0,np.size(imgL,1)))
         cv2.imshow('Image with detection', imgL)
 
         print("-- files loaded successfully")
@@ -54,8 +53,6 @@ for filename_left in left_file_list:
             cv2.imwrite("sgbm-disparty.png", disparity_scaled)
             cv2.imwrite("left.png", imgL)
             cv2.imwrite("right.png", imgR)
-        elif (key == ord('c')):     # crop
-            crop_disparity = not(crop_disparity)
         elif (key == ord(' ')):     # pause (on next frame)
             pause_playback = not(pause_playback)
     else:

@@ -121,7 +121,7 @@ def preprocess(img):
     img = cv2.merge((blue, green, red))
     return img
     
-def yolo_net(frame, depth_points, crop_y, crop_x):
+def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
     # Crop the frame to run the detection on
     cropped_frame = frame[crop_y[0]:crop_y[1], crop_x[0]:crop_x[1]]
     cropped_frame = preprocess(cropped_frame)
@@ -150,11 +150,12 @@ def yolo_net(frame, depth_points, crop_y, crop_x):
         #three_quart_x = left + (3 * width) // 4
         #central_quarter = depth_points[quart_y:three_quart_y, quart_x:three_quart_x]
         box = depth_points[top: top + height,left:left + width]
-        print(box.shape)
-        try:
-            avg = np.percentile(box, 25)
-            drawPred(frame, classes[classIDs[detected_object]],
-                left, top, left + width, top + height, (255, 178, 50), avg)
-        except IndexError:
+        if box.shape[0] == 0 or box.shape[1] == 0:
             continue
-
+        if is_sparse:
+            avg = np.true_divide(box.sum(), np.count_nonzero(box))
+        else:
+            avg = np.percentile(box, 25)
+        drawPred(frame, classes[classIDs[detected_object]],
+            left, top, left + width, top + height, (255, 178, 50), avg)
+    

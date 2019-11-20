@@ -66,9 +66,6 @@ def detect_matches(gray_frame1, gray_frame2):
         print("Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT))
         matchesMask = None
     
-    print(keypoints1)
-    print(keypoints2)
-    print(good_matches)
     return keypoints1, keypoints2, good_matches
     
     """    
@@ -84,18 +81,15 @@ def detect_matches(gray_frame1, gray_frame2):
 
 
 #returns the disparity map
-def get_disp_map(img1, img2):
+def get_sparse_disp(img1, img2):
     keypoints1, keypoints2, good_matches  = detect_matches(img1, img2)
     
-    disp_img = np.zeros(img1.shape)
-    print(disp_img)
-    print(img1)
+    disp_img = np.zeros(img1.shape, dtype=np.int16)
     for m in good_matches:
         xl = int(keypoints1[m.queryIdx].pt[0])
         yl = int(keypoints1[m.queryIdx].pt[1])
         xr = int(keypoints2[m.trainIdx].pt[0])
         disp_img[yl, xl] = abs(xl - xr)
-        
-    
-    print(disp_img)
-    #return disp_img    
+    disp_img = \
+        cv2.normalize(disp_img, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX)         
+    return disp_img    

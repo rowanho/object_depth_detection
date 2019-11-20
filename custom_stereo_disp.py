@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from surf import get_disp_map
+from surf import get_sparse_disp
 max_disparity = 64
 left_matcher = cv2.StereoSGBM_create(0, max_disparity, 21)
 right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
@@ -58,31 +58,34 @@ def preprocess(img):
 # Returns 2d points and 3d depth with format [x(2d),y(2d),z(3d)]
 # imgL - The left image
 # imgR - The right image
-def get_depth_points(imgL, imgR):
+def get_depth_points(imgL, imgR, is_sparse):
     
     # remember to convert to grayscale (as the disparity matching works on grayscale)
     # N.B. need to do for both as both are 3-channel images
 
     grayL = cv2.cvtColor(imgL,cv2.COLOR_BGR2GRAY)
     grayR = cv2.cvtColor(imgR,cv2.COLOR_BGR2GRAY)
-    get_disp_map(grayL, grayR)
 
     # perform preprocessing - raise to the power, as this subjectively appears
     # to improve subsequent disparity calculation
 
     grayL = preprocess(grayL)
     grayR = preprocess(grayR)
+    if is_sparse:
+        disparity =  get_sparse_disp(grayL, grayR)        
 
-    # compute disparity image from undistorted and rectified stereo images
-    # that we have loaded
-    # (which for reasons best known to the OpenCV developers is returned scaled by 16)
+    else:        
+        # compute disparity image from undistorted and rectified stereo images
+        # that we have loaded
+        # (which for reasons best known to the OpenCV developers is returned scaled by 16)
+        dispNoiseFilter = 10 # increase for more agressive filtering
+        disparity = disp_with_wls_filtering(grayL, grayR)
+        # filter out noise and speckles (adjust parameters as needed)
+        cv2.filterSpeckles(disparity, 0, 4000, max_disparity - dispNoiseFilter)
+        
 
-    disparity = disp_with_wls_filtering(grayL, grayR)
 
-    # filter out noise and speckles (adjust parameters as needed)
 
-    dispNoiseFilter = 10 # increase for more agressive filtering
-    cv2.filterSpeckles(disparity, 0, 4000, max_disparity - dispNoiseFilter)
     
     # Apply wls filter to disparity
     
@@ -93,9 +96,11 @@ def get_depth_points(imgL, imgR):
     # as disparity=-1 means no disparity 
     #disparity = cv2.normalize(src=disparity, dst=disparity, beta=0, alpha=255, norm_type=cv2.NORM_MINMAX);
     _, disparity_scaled = cv2.threshold(disparity,0, max_disparity * 16, cv2.THRESH_TOZERO)
-    disparity_scaled = (disparity/ 16).astype(np.uint8)
-    
+    print(np.max(disparity_scaled))
+    if not is_sparse:
+        disparity_scaled = (disparity/ 16).astype(np.uint8)
+    else:
+        disparity_scaled = disparity
     cv2.imshow('disparity', (disparity_scaled * (256 / max_disparity)).astype(np.uint8))
     points = project_disparity_to_2d_with_depth(disparity_scaled, max_disparity)
-    
     return points
