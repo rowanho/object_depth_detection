@@ -1,8 +1,8 @@
 import cv2
 import os
 import numpy as np
-from custom_yolo import yolo_net
-from custom_stereo_disp import get_depth_points
+from object_detection import yolo_net
+from stereo import get_depth_points
 # set to dataset path
 master_path_to_dataset = "TTBB-durham-02-10-17-sub10"
 directory_to_cycle_left = "left-images"     

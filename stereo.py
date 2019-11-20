@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from surf import get_sparse_disp
+from feature_points import get_sparse_disp
 max_disparity = 64
 left_matcher = cv2.StereoSGBM_create(0, max_disparity, 21)
 right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)

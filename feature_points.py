@@ -15,8 +15,10 @@ multi_probe_level = 1) #2
 search_params = dict(checks=50)   # or pass empty dictionary
 matcher = cv2.FlannBasedMatcher(index_params,search_params)
 
+# Takes in grayscale images imgL and imgR
+# Returns keypoints and the 'good' matches between them, using ORB feature point detection
 
-def detect_matches(gray_frame1, gray_frame2):
+def detect_matches(imgL, imgR, plot_info=False):
     # if using ORB points use FLANN object that can handle binary descriptors
     # taken from: https://docs.opencv.org/3.3.0/dc/dc3/tutorial_py_matcher.html
     # N.B. "commented values are recommended as per the docs,
@@ -24,8 +26,8 @@ def detect_matches(gray_frame1, gray_frame2):
 
     # get best matches (and second best matches)
     # using a k Nearst Neighboour (kNN) radial matcher with k=2
-    keypoints1, descriptors1 = feature_object.detectAndCompute(gray_frame1,None)
-    keypoints2, descriptors2 = feature_object.detectAndCompute(gray_frame2,None)
+    keypointsL, descriptors1 = feature_object.detectAndCompute(imgL,None)
+    keypointsR, descriptors2 = feature_object.detectAndCompute(imgR,None)
 
     matches = []
     if (len(descriptors1) > 0):
@@ -48,14 +50,14 @@ def detect_matches(gray_frame1, gray_frame2):
 
         # construct two sets of points - source (the selected object/region points), destination (the current frame points)
 
-        source_pts = np.float32([ keypoints1[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,2)
-        destination_pts = np.float32([ keypoints2[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
+        source_pts = np.float32([ keypointsL[m.queryIdx].pt for m in good_matches ]).reshape(-1,1,2)
+        destination_pts = np.float32([ keypointsR[m.trainIdx].pt for m in good_matches ]).reshape(-1,1,2)
 
         # compute the homography (matrix transform) from one set to the other using RANSAC
 
         H, mask = cv2.findHomography(source_pts, destination_pts, cv2.RANSAC, 5.0)
 
-        matchesMask = mask.ravel().tolist()
+        matches_mask = mask.ravel().tolist()
         
         h,w = gray_frame1.shape
         pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
@@ -66,28 +68,21 @@ def detect_matches(gray_frame1, gray_frame2):
         print("Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT))
         matchesMask = None
     
-    return keypoints1, keypoints2, good_matches
-    
-    """    
-    draw_params = dict(matchColor = (0,255,0), # draw matches in green color
-                       singlePointColor = None,
-                       matchesMask = matchesMask, # draw only inliers
-                       flags = 2)
-
-    img3 = cv2.drawMatches(gray_frame1,keypoints1,gray_frame2,keypoints2,good_matches,None,**draw_params)
-
-    plt.imshow(img3, 'gray'),plt.show()    
-    """
+    if  plot_info:
+        return keypointsL, keypointsR, good_matches, matches_mask
+    else:
+        return keypointsL, keypointsR, good_matches
+        
 
 
 #returns the disparity map
-def get_sparse_disp(img1, img2):
-    keypoints1, keypoints2, good_matches  = detect_matches(img1, img2)
+def get_sparse_disp(imgL, imgR):
+    keypointsL, keypointsR, good_matches  = detect_matches(imgL, imgR)
     
     disp_img = np.zeros(img1.shape, dtype=np.int16)
     for m in good_matches:
-        xl = int(keypoints1[m.queryIdx].pt[0])
-        yl = int(keypoints1[m.queryIdx].pt[1])
-        xr = int(keypoints2[m.trainIdx].pt[0])
+        xl = int(keypointsL[m.queryIdx].pt[0])
+        yl = int(keypointsL[m.queryIdx].pt[1])
+        xr = int(keypointsR[m.trainIdx].pt[0])
         disp_img[yl, xl] = abs(xl - xr)
     return disp_img    
