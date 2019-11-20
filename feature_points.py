@@ -59,11 +59,11 @@ def detect_matches(imgL, imgR, plot_info=False):
 
         matches_mask = mask.ravel().tolist()
         
-        h,w = gray_frame1.shape
+        h,w = imgL.shape
         pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
         dst = cv2.perspectiveTransform(pts,H)
 
-        img2 = cv2.polylines(gray_frame2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+        img2 = cv2.polylines(imgR,[np.int32(dst)],True,255,3, cv2.LINE_AA)
     else:
         print("Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT))
         matchesMask = None
@@ -79,7 +79,7 @@ def detect_matches(imgL, imgR, plot_info=False):
 def get_sparse_disp(imgL, imgR):
     keypointsL, keypointsR, good_matches  = detect_matches(imgL, imgR)
     
-    disp_img = np.zeros(img1.shape, dtype=np.int16)
+    disp_img = np.zeros(imgL.shape, dtype=np.int16)
     for m in good_matches:
         xl = int(keypointsL[m.queryIdx].pt[0])
         yl = int(keypointsL[m.queryIdx].pt[1])
