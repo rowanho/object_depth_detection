@@ -21,26 +21,12 @@ def drawPred(image, class_name, left, top, right, bottom, colour, depth):
     labelSize, baseline = cv2.getTextSize(
         label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
     top = max(top, labelSize[1])
-    cv2.rectangle(
-        image,
-        (left,
-         bottom +
-         round(
-             1.0 *
-             labelSize[1])),
-        (left +
-         round(
-             1.0 *
-             labelSize[0]),
-            bottom +
-            baseline -
-            round(
-                1.5 *
-                labelSize[1])),
-        (255,
-         255,
-         255),
-        cv2.FILLED)
+    cv2.rectangle(image,
+                 (left, bottom + round(1.0 *labelSize[1])),
+                 (left + round(1.0 * labelSize[0]), 
+                  bottom +baseline - round(1.5 *labelSize[1])),
+                  (255,255,255),
+                  cv2.FILLED)
     cv2.putText(image, label, (left, bottom),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
@@ -155,12 +141,13 @@ net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
 def preprocess(img):
     img = np.power(img, 0.85).astype('uint8')
+    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
     b, g, r = cv2.split(img)
-    red = cv2.equalizeHist(r)
-    green = cv2.equalizeHist(g)
-    blue = cv2.equalizeHist(b)
-    img = cv2.merge((blue, green, red))
-    return img
+    red = clahe.apply(r)
+    green = clahe.apply(g)
+    blue = clahe.apply(b)
+    processed_img = cv2.merge((blue, green, red))
+    return processed_img
 
 
 def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
@@ -189,11 +176,6 @@ def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
         top = box[1] + crop_y[0]
         width = box[2]
         height = box[3]
-        #quart_y = top + height // 4
-        #three_quart_y = top + (3 * height) // 4
-        #quart_x = left + width // 4
-        #three_quart_x = left + (3 * width) // 4
-        #central_quarter = depth_points[quart_y:three_quart_y, quart_x:three_quart_x]
         box = depth_points[top: top + height, left:left + width]
         if box.shape[0] == 0 or box.shape[1] == 0:
             continue
