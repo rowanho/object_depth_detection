@@ -24,7 +24,7 @@ full_path_directory_right = os.path.join(
 
 left_file_list = sorted(os.listdir(full_path_directory_left))
 
-is_sparse = True
+is_sparse = False
 # Loop through files
 for filename_left in left_file_list:
 

@@ -4,3 +4,5 @@ yolo*
 coco.names
 stereo_disparity.py
 surf_detection.py
+
+*.png

@@ -182,6 +182,6 @@ def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
         if is_sparse:
             avg = np.true_divide(box.sum(), np.count_nonzero(box))
         else:
-            avg = np.percentile(box, 25)
+            avg = np.percentile(box, 50)
         drawPred(frame, classes[classIDs[detected_object]],
                  left, top, left + width, top + height, (255, 178, 50), avg)

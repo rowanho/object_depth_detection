@@ -2,7 +2,9 @@ import numpy as np
 import cv2
 
 import matplotlib.pyplot as plt
-feature_object = cv2.ORB_create(800)
+feature_object = cv2.ORB_create(1000)
+feature_object.setFastThreshold(0)
+
 MIN_MATCH_COUNT = 10
 FLANN_INDEX_LSH = 6
 index_params = dict(algorithm=FLANN_INDEX_LSH,
@@ -73,7 +75,7 @@ def detect_matches(imgL, imgR, plot_info=False):
     else:
         print(
             "Not enough matches are found - %d/%d" %
-            (len(good), MIN_MATCH_COUNT))
+            (len(good_matches), MIN_MATCH_COUNT))
         matchesMask = None
 
     if plot_info:

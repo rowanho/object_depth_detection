@@ -18,6 +18,15 @@ stereo_camera_baseline_m = 0.2090607502     # camera baseline in metres
 image_centre_h = 262.0
 image_centre_w = 474.5
 
+
+
+back_sub = cv2.createBackgroundSubtractorKNN()
+
+# Gets the foreground mask
+def get_fg_mask(img):
+     return back_sub.apply(img)
+
+
 # Numpy vectorised function to calcuate depth
 
 
@@ -48,19 +57,29 @@ def disp_with_wls_filtering(imgL, imgR):
     dispr = right_matcher.compute(imgR, imgL)
     displ = np.int16(displ)
     dispr = np.int16(dispr)
+    # Apply wls filter to disparity
     filteredDisp = wls_filter.filter(displ, imgL, None, dispr)
     return filteredDisp
 
+# Preprocessing pipelines for both sparse and dense implementations
 
-def preprocess(img):
+def preprocess_dense(img):
     img = np.power(img, 0.85).astype('uint8')
-    img = cv2.equalizeHist(img)
+    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
+    img = clahe.apply(img)
+
     return img
 
+def preprocess_sparse(img):
+    img = np.power(img, 0.85).astype('uint8')
+    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
+    img = clahe.apply(img)
+    return img
+    
+    
 # Returns 2d points and 3d depth with format [x(2d),y(2d),z(3d)]
 # imgL - The left image
 # imgR - The right image
-
 
 def get_depth_points(imgL, imgR, is_sparse):
 
@@ -72,32 +91,26 @@ def get_depth_points(imgL, imgR, is_sparse):
 
     # perform preprocessing - raise to the power, as this subjectively appears
     # to improve subsequent disparity calculation
-
-    grayL = preprocess(grayL)
-    grayR = preprocess(grayR)
     if is_sparse:
+        grayL = preprocess_sparse(grayL)
+        grayR = preprocess_sparse(grayR)
         disparity = get_sparse_disp(grayL, grayR)
 
     else:
-        # compute disparity image from undistorted and rectified stereo images
-        # that we have loaded
-        # (which for reasons best known to the OpenCV developers is returned scaled by 16)
-        dispNoiseFilter = 10  # increase for more agressive filtering
+        fg_mask = get_fg_mask(imgL)
+        grayL = preprocess_dense(grayL)
+        grayR = preprocess_dense(grayR)
+        # Disparity using left and right matching + wls filter
         disparity = disp_with_wls_filtering(grayL, grayR)
+        dispNoiseFilter = 10  # increase for more agressive filtering
         # filter out noise and speckles (adjust parameters as needed)
         cv2.filterSpeckles(disparity, 0, 4000, max_disparity - dispNoiseFilter)
-
-    # Apply wls filter to disparity
-
-    # scale the disparity to 8-bit for viewing
-    # divide by 16 and convert to 8-bit image (then range of values should
-    # be 0 -> max_disparity) but in fact is (-1 -> max_disparity - 1)
-    # so we fix this also using a initial threshold between 0 and max_disparity
-    # as disparity=-1 means no disparity
-    #disparity = cv2.normalize(src=disparity, dst=disparity, beta=0, alpha=255, norm_type=cv2.NORM_MINMAX);
+        
+        # Only keep foreground values
+        disparity = (fg_mask/255).astype(np.uint8) * disparity 
     _, disparity_scaled = cv2.threshold(
         disparity, 0, max_disparity * 16, cv2.THRESH_TOZERO)
-    print(np.max(disparity_scaled))
+        
     if not is_sparse:
         disparity_scaled = (disparity / 16).astype(np.uint8)
     else:
