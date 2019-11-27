@@ -1,8 +1,12 @@
-import cv2
 import os
+import argparse
+
+import cv2
 import numpy as np
-from object_detection import yolo_net
+
+from object_detection import apply_yolo
 from stereo import get_depth_points
+
 # set to dataset path
 master_path_to_dataset = "TTBB-durham-02-10-17-sub10"
 directory_to_cycle_left = "left-images"
@@ -24,7 +28,12 @@ full_path_directory_right = os.path.join(
 
 left_file_list = sorted(os.listdir(full_path_directory_left))
 
-is_sparse = False
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--is_sparse',  type=bool, default=False,
+                    help='Whether or not to use sparse disparity')
+                    
+args = parser.parse_args()
 # Loop through files
 for filename_left in left_file_list:
 
@@ -45,9 +54,9 @@ for filename_left in left_file_list:
         imgL = cv2.imread(full_path_filename_left, cv2.IMREAD_COLOR)
         imgR = cv2.imread(full_path_filename_right, cv2.IMREAD_COLOR)
         cv2.imshow('left image', imgL)
-        depth_points = get_depth_points(imgL, imgR, is_sparse)
+        depth_points = get_depth_points(imgL, imgR, args.is_sparse)
 
-        yolo_net(imgL, depth_points, is_sparse,
+        apply_yolo(imgL, depth_points, args.is_sparse,
                  (0, 390), (0, np.size(imgL, 1)))
         cv2.imshow('Image with detection', imgL)
 

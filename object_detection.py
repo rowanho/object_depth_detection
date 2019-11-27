@@ -1,6 +1,6 @@
-import cv2
-import sys
 import math
+
+import cv2
 import numpy as np
 
 # Draw the predicted bounding box on the specified image
@@ -150,7 +150,7 @@ def preprocess(img):
     return processed_img
 
 
-def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
+def apply_yolo(frame, depth_points, is_sparse, crop_y, crop_x):
     # Crop the frame to run the detection on
     cropped_frame = frame[crop_y[0]:crop_y[1], crop_x[0]:crop_x[1]]
     cropped_frame = preprocess(cropped_frame)
@@ -182,6 +182,8 @@ def yolo_net(frame, depth_points, is_sparse, crop_y, crop_x):
         if is_sparse:
             avg = np.true_divide(box.sum(), np.count_nonzero(box))
         else:
-            avg = np.percentile(box, 50)
-        drawPred(frame, classes[classIDs[detected_object]],
-                 left, top, left + width, top + height, (255, 178, 50), avg)
+            avg = np.true_divide(box.sum(), np.count_nonzero(box))
+
+        if not np.isnan(avg):
+            drawPred(frame, classes[classIDs[detected_object]],
+                     left, top, left + width, top + height, (255, 178, 50), avg)

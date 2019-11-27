@@ -1,6 +1,7 @@
 import os
-import numpy as np
+
 import cv2
+import numpy as np
 import matplotlib.pyplot as plt
 
 from feature_points import detect_matches
@@ -58,7 +59,7 @@ def reduce_brightness():
         '1506942550.476061_L.png')
     img = cv2.imread(left_path, cv2.IMREAD_COLOR)
     
-    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8,8))
+    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
 
     lab[...,0] = clahe.apply(lab[...,0])
@@ -78,7 +79,7 @@ def reduce_brightness():
 def plot_histogram(img, name_to_save, plot_name):
     plt.xlabel('Pixel Value')
     plt.ylabel('Frequency')
-    plt.title(plot_name)
+    #plt.title(plot_name)
     plt.hist(img.ravel(), 256, [0,256])
     plt.savefig(name_to_save)
     plt.clf()

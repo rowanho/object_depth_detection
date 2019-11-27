@@ -1,12 +1,13 @@
 import cv2
 import numpy as np
+
 from feature_points import get_sparse_disp
 max_disparity = 64
 left_matcher = cv2.StereoSGBM_create(0, max_disparity, 21)
 right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
 wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=left_matcher)
-wls_filter.setLambda(80000)
-wls_filter.setSigmaColor(1.2)
+wls_filter.setLambda(8000)
+wls_filter.setSigmaColor(1.3)
 
 
 # fixed camera parameters for this stereo setup (from calibration)
@@ -20,7 +21,7 @@ image_centre_w = 474.5
 
 
 
-back_sub = cv2.createBackgroundSubtractorKNN()
+back_sub = cv2.createBackgroundSubtractorMOG2()
 
 # Gets the foreground mask
 def get_fg_mask(img):
@@ -36,7 +37,6 @@ def depth(disp, f, B):
     else:
         return 0.0
 
-
 # Project a given disparity image to have 3d depth points
 
 def project_disparity_to_2d_with_depth(disparity, max_disparity):
@@ -46,8 +46,8 @@ def project_disparity_to_2d_with_depth(disparity, max_disparity):
     height, width = disparity.shape[:2]
 
     points = np.zeros((height, width))
-    vec_depth = np.vectorize(depth)
 
+    vec_depth = np.vectorize(depth)
     points = vec_depth(disparity, f, B)
     return points
 
@@ -61,22 +61,58 @@ def disp_with_wls_filtering(imgL, imgR):
     filteredDisp = wls_filter.filter(displ, imgL, None, dispr)
     return filteredDisp
 
+def normal_disp(imgL, imgR):
+    return left_matcher.compute(imgL, imgR)
 # Preprocessing pipelines for both sparse and dense implementations
 
 def preprocess_dense(img):
-    img = np.power(img, 0.85).astype('uint8')
-    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
+    img = np.power(img, 0.95).astype('uint8')
+    clahe = cv2.createCLAHE(clipLimit=0.5, tileGridSize=(8,8))
     img = clahe.apply(img)
-
+    
+    
     return img
 
+
+def rgb_norm(v,b,g,r):
+    if b + g + r == 0:
+        return 0
+    return v / (b + g + r)
+    
+# Preprocess for background detection
+def preprocess_for_bg(img):
+    return img
+
+# Post processing for the background mask
+def post_process_for_bg(mask):
+    # Remove noisy pieces of foreground
+    # Find connected components 
+    nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=4)
+    # Remove background component
+    sizes = stats[1:, -1]; nb_components = nb_components - 1
+
+    # minimum size of particles
+    min_num = 15
+
+    cleaned_img = np.zeros((output.shape), dtype=np.uint8)
+    
+    # Only keep components larger than min_num
+    for i in range(0, nb_components):
+        if sizes[i] >= min_num:
+            print("true")
+            cleaned_img[output == i + 1] = 255
+            
+    kernel = np.ones((7,7),np.uint8)        
+    cleaned_img = cv2.morphologyEx(cleaned_img, cv2.MORPH_CLOSE, kernel)
+    return cleaned_img
+    
+    
 def preprocess_sparse(img):
-    img = np.power(img, 0.85).astype('uint8')
     clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
     img = clahe.apply(img)
     return img
     
-    
+
 # Returns 2d points and 3d depth with format [x(2d),y(2d),z(3d)]
 # imgL - The left image
 # imgR - The right image
@@ -97,24 +133,34 @@ def get_depth_points(imgL, imgR, is_sparse):
         disparity = get_sparse_disp(grayL, grayR)
 
     else:
-        fg_mask = get_fg_mask(imgL)
+        fg_mask = get_fg_mask(preprocess_for_bg(imgL))
+        fg_mask = post_process_for_bg(fg_mask)
+        
         grayL = preprocess_dense(grayL)
         grayR = preprocess_dense(grayR)
         # Disparity using left and right matching + wls filter
         disparity = disp_with_wls_filtering(grayL, grayR)
+        disp_normal = normal_disp(grayL, grayR)
         dispNoiseFilter = 10  # increase for more agressive filtering
         # filter out noise and speckles (adjust parameters as needed)
         cv2.filterSpeckles(disparity, 0, 4000, max_disparity - dispNoiseFilter)
         
         # Only keep foreground values
-        disparity = (fg_mask/255).astype(np.uint8) * disparity 
+        #disparity = (fg_mask/255).astype(np.uint8) * disparity 
     _, disparity_scaled = cv2.threshold(
         disparity, 0, max_disparity * 16, cv2.THRESH_TOZERO)
-        
-    if not is_sparse:
-        disparity_scaled = (disparity / 16).astype(np.uint8)
-    else:
+    _, disp_normal_scaled = cv2.threshold(
+        disp_normal, 0, max_disparity * 16, cv2.THRESH_TOZERO)
+    
+    cv2.imwrite('raw.png', grayL)
+
+    cv2.imwrite('after_wls.png', disparity_scaled *(16 / max_disparity))
+    cv2.imwrite('before_wls.png', disp_normal_scaled *(16 / max_disparity))
+    if  is_sparse:
         disparity_scaled = disparity
+    else:
+        disparity_scaled = (disparity / 16).astype(np.uint8)
+
     cv2.imshow('disparity', (disparity_scaled *
                              (256 / max_disparity)).astype(np.uint8))
     points = project_disparity_to_2d_with_depth(
