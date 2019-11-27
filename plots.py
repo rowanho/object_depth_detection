@@ -55,22 +55,33 @@ def plot_feature_points():
 def reduce_brightness():
     left_path = os.path.join(
         full_path_directory_left,
-        '1506942502.475483_L.png')
+        '1506942550.476061_L.png')
     img = cv2.imread(left_path, cv2.IMREAD_COLOR)
-    #processed_img = np.power(img, 1.2)
-    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
-    b, g, r = cv2.split(img)
-    red = clahe.apply(r)
-    green = clahe.apply(g)
-    blue = clahe.apply(b)
-    processed_img = cv2.merge((blue, green, red))
+    
+    clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(8,8))
+    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
 
+    lab[...,0] = clahe.apply(lab[...,0])
+    processed_img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+    
     processed_img = processed_img.astype(np.uint8)
-    cv2.imwrite('too_much_brightness.png', img)
-    cv2.imwrite('reduce_brightness.png', processed_img)
+    plot_histogram(img, 'before_CLAHE_hist.png', 'Histogram before' )
+    plot_histogram(processed_img,' after_CLAHE_hist.png', 'Histogram after')
+    cv2.imwrite('before_CLAHE.png', img)
+    cv2.imwrite('after_CLAHE.png', processed_img)
     plt.show()
     
+# Given  a grayscale image, plots the relevant histogram
+# Saves as filename name_to_save
 
-
+def plot_histogram(img, name_to_save, plot_name):
+    plt.xlabel('Pixel Value')
+    plt.ylabel('Frequency')
+    plt.title(plot_name)
+    plt.hist(img.ravel(), 256, [0,256])
+    plt.savefig(name_to_save)
+    plt.clf()
+    
 reduce_brightness()    
 #plot_feature_points()
