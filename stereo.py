@@ -61,10 +61,7 @@ def disp_with_wls_filtering(imgL, imgR):
     filteredDisp = wls_filter.filter(displ, imgL, None, dispr)
     return filteredDisp
 
-def normal_disp(imgL, imgR):
-    return left_matcher.compute(imgL, imgR)
-# Preprocessing pipelines for both sparse and dense implementations
-
+# Preprocessing for dense implementation
 def preprocess_dense(img):
     img = np.power(img, 0.95).astype('uint8')
     clahe = cv2.createCLAHE(clipLimit=0.5, tileGridSize=(8,8))
@@ -72,12 +69,6 @@ def preprocess_dense(img):
     
     
     return img
-
-
-def rgb_norm(v,b,g,r):
-    if b + g + r == 0:
-        return 0
-    return v / (b + g + r)
     
 # Preprocess for background detection
 def preprocess_for_bg(img):
@@ -106,7 +97,7 @@ def post_process_for_bg(mask):
     cleaned_img = cv2.morphologyEx(cleaned_img, cv2.MORPH_CLOSE, kernel)
     return cleaned_img
     
-    
+# Preprocessing for sparse implementation    
 def preprocess_sparse(img):
     clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
     img = clahe.apply(img)
@@ -117,7 +108,7 @@ def preprocess_sparse(img):
 # imgL - The left image
 # imgR - The right image
 
-def get_depth_points(imgL, imgR, is_sparse):
+def get_depth_points(imgL, imgR, is_sparse, use_fg_mask):
 
     # remember to convert to grayscale (as the disparity matching works on grayscale)
     # N.B. need to do for both as both are 3-channel images
@@ -133,29 +124,24 @@ def get_depth_points(imgL, imgR, is_sparse):
         disparity = get_sparse_disp(grayL, grayR)
 
     else:
-        fg_mask = get_fg_mask(preprocess_for_bg(imgL))
-        fg_mask = post_process_for_bg(fg_mask)
         
         grayL = preprocess_dense(grayL)
         grayR = preprocess_dense(grayR)
         # Disparity using left and right matching + wls filter
         disparity = disp_with_wls_filtering(grayL, grayR)
-        disp_normal = normal_disp(grayL, grayR)
         dispNoiseFilter = 10  # increase for more agressive filtering
         # filter out noise and speckles (adjust parameters as needed)
         cv2.filterSpeckles(disparity, 0, 4000, max_disparity - dispNoiseFilter)
         
-        # Only keep foreground values
-        #disparity = (fg_mask/255).astype(np.uint8) * disparity 
+        if use_fg_mask:
+            fg_mask = get_fg_mask(preprocess_for_bg(imgL))
+            fg_mask = post_process_for_bg(fg_mask)
+            # Only keep foreground values
+            disparity = (fg_mask/255).astype(np.uint8) * disparity 
+            
     _, disparity_scaled = cv2.threshold(
         disparity, 0, max_disparity * 16, cv2.THRESH_TOZERO)
-    _, disp_normal_scaled = cv2.threshold(
-        disp_normal, 0, max_disparity * 16, cv2.THRESH_TOZERO)
     
-    cv2.imwrite('raw.png', grayL)
-
-    cv2.imwrite('after_wls.png', disparity_scaled *(16 / max_disparity))
-    cv2.imwrite('before_wls.png', disp_normal_scaled *(16 / max_disparity))
     if  is_sparse:
         disparity_scaled = disparity
     else:

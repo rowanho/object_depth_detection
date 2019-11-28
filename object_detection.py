@@ -3,6 +3,7 @@ import math
 import cv2
 import numpy as np
 
+from plots2 import plot_histogram
 # Draw the predicted bounding box on the specified image
 # image: image detection performed on
 # class_name: string name of detected object_detection
@@ -149,8 +150,18 @@ def preprocess(img):
     processed_img = cv2.merge((blue, green, red))
     return processed_img
 
-
-def apply_yolo(frame, depth_points, is_sparse, crop_y, crop_x):
+# Estimates the depth of the object inside the box
+def get_box_depth(box, is_sparse, use_fg_mask):
+    print(box)
+    if is_sparse:
+        avg = np.true_divide(box.sum(), np.count_nonzero(box))
+    else:
+        avg = np.true_divide(box.sum(), np.count_nonzero(box))
+        
+    return avg
+    
+    
+def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
     # Crop the frame to run the detection on
     cropped_frame = frame[crop_y[0]:crop_y[1], crop_x[0]:crop_x[1]]
     cropped_frame = preprocess(cropped_frame)
@@ -177,13 +188,12 @@ def apply_yolo(frame, depth_points, is_sparse, crop_y, crop_x):
         width = box[2]
         height = box[3]
         box = depth_points[top: top + height, left:left + width]
+        plot_histogram(box, 'box_histogram.png')
         if box.shape[0] == 0 or box.shape[1] == 0:
             continue
-        if is_sparse:
-            avg = np.true_divide(box.sum(), np.count_nonzero(box))
-        else:
-            avg = np.true_divide(box.sum(), np.count_nonzero(box))
+        
+        depth = get_box_depth(box, is_sparse, use_fg_mask)
 
-        if not np.isnan(avg):
+        if not np.isnan(depth):
             drawPred(frame, classes[classIDs[detected_object]],
-                     left, top, left + width, top + height, (255, 178, 50), avg)
+                     left, top, left + width, top + height, (255, 178, 50), depth)

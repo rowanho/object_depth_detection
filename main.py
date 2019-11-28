@@ -32,6 +32,8 @@ left_file_list = sorted(os.listdir(full_path_directory_left))
 parser = argparse.ArgumentParser()
 parser.add_argument('--is_sparse',  type=bool, default=False,
                     help='Whether or not to use sparse disparity')
+parser.add_argument('--use_fg_mask',  type=bool, default=False,
+                    help='Whether or not to apply a foreground mask')
                     
 args = parser.parse_args()
 # Loop through files
@@ -54,10 +56,12 @@ for filename_left in left_file_list:
         imgL = cv2.imread(full_path_filename_left, cv2.IMREAD_COLOR)
         imgR = cv2.imread(full_path_filename_right, cv2.IMREAD_COLOR)
         cv2.imshow('left image', imgL)
-        depth_points = get_depth_points(imgL, imgR, args.is_sparse)
+        print(args.is_sparse)
+        print(args.use_fg_mask)
+        depth_points = get_depth_points(imgL, imgR, args.is_sparse, args.use_fg_mask)
 
-        apply_yolo(imgL, depth_points, args.is_sparse,
-                 (0, 390), (0, np.size(imgL, 1)))
+        apply_yolo(imgL, depth_points, (0, 390), 
+                  (0, np.size(imgL, 1)), args.is_sparse, args.use_fg_mask)
         cv2.imshow('Image with detection', imgL)
 
         print("-- files loaded successfully")
@@ -66,10 +70,6 @@ for filename_left in left_file_list:
         key = cv2.waitKey(40 * (not(pause_playback))) & 0xFF
         if (key == ord('x')):       # exit
             break  # exit
-        elif (key == ord('s')):     # save
-            cv2.imwrite("sgbm-disparty.png", disparity_scaled)
-            cv2.imwrite("left.png", imgL)
-            cv2.imwrite("right.png", imgR)
         elif (key == ord(' ')):     # pause (on next frame)
             pause_playback = not(pause_playback)
     else:

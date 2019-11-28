@@ -5,7 +5,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from feature_points import detect_matches
-from object_detection import preprocess
+
+from object_detection import apply_yolo
+from stereo import get_depth_points
+
 master_path_to_dataset = "TTBB-durham-02-10-17-sub10"
 directory_to_cycle_left = "left-images"
 directory_to_cycle_right = "right-images"
@@ -72,17 +75,23 @@ def reduce_brightness():
     cv2.imwrite('before_CLAHE.png', img)
     cv2.imwrite('after_CLAHE.png', processed_img)
     plt.show()
-    
-# Given  a grayscale image, plots the relevant histogram
-# Saves as filename name_to_save
 
-def plot_histogram(img, name_to_save, plot_name):
-    plt.xlabel('Pixel Value')
-    plt.ylabel('Frequency')
-    #plt.title(plot_name)
-    plt.hist(img.ravel(), 256, [0,256])
-    plt.savefig(name_to_save)
-    plt.clf()
-    
-reduce_brightness()    
-#plot_feature_points()
+def stats_for_specific_img():
+    left_path = os.path.join(
+        full_path_directory_left,
+        '1506942487.479214_L.png')
+    imgL = cv2.imread(left_path, cv2.IMREAD_COLOR)
+    right_path = os.path.join(
+        full_path_directory_right,
+        '1506942487.479214_R.png')
+    imgR = cv2.imread(right_path, cv2.IMREAD_COLOR)
+    depth_points = get_depth_points(imgL, imgR, False, False)
+
+    apply_yolo(imgL, depth_points, (0, 390), 
+              (0, np.size(imgL, 1)), False, False)
+    cv2.imwrite('boxes.png', imgL)
+
+if __name__ == "__main__":
+    #reduce_brightness()    
+    #plot_feature_points()
+    stats_for_specific_img()
