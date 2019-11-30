@@ -2,6 +2,7 @@ import math
 
 import cv2
 import numpy as np
+from scipy import stats
 
 from plots2 import plot_histogram
 # Draw the predicted bounding box on the specified image
@@ -22,6 +23,7 @@ def drawPred(image, class_name, left, top, right, bottom, colour, depth):
     labelSize, baseline = cv2.getTextSize(
         label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
     top = max(top, labelSize[1])
+    
     cv2.rectangle(image,
                  (left, bottom + round(1.0 *labelSize[1])),
                  (left + round(1.0 * labelSize[0]), 
@@ -30,7 +32,7 @@ def drawPred(image, class_name, left, top, right, bottom, colour, depth):
                   cv2.FILLED)
     cv2.putText(image, label, (left, bottom),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-
+                
 
 # Remove the bounding boxes with low confidence using non-maxima suppression
 # image: image detection performed on
@@ -93,7 +95,6 @@ def postprocess(image, results, threshold_confidence, threshold_nms):
 # Get the names of the output layers of the CNN network
 # net : an OpenCV DNN module network object
 
-
 def getOutputsNames(net):
     # Get the names of all the layers in the network
     layersNames = net.getLayerNames()
@@ -138,10 +139,8 @@ net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
 # Power transform + histogram equalization
-
-
 def preprocess(img):
-    img = np.power(img, 0.85).astype('uint8')
+    img = np.power(img, 0.95).astype('uint8')
     clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
     b, g, r = cv2.split(img)
     red = clahe.apply(r)
@@ -152,15 +151,21 @@ def preprocess(img):
 
 # Estimates the depth of the object inside the box
 def get_box_depth(box, is_sparse, use_fg_mask):
-    print(box)
+    avg = 0
     if is_sparse:
-        avg = np.true_divide(box.sum(), np.count_nonzero(box))
+        non_zeros = box[np.nonzero(box)]
+        if non_zeros.shape[0] == 0:
+            return 0
+        avg = np.avg(non_zeros)
     else:
-        avg = np.true_divide(box.sum(), np.count_nonzero(box))
+        non_zeros = box[np.nonzero(box)]
+        if non_zeros.shape[0] == 0:
+            return 0
+        avg = np.percentile(non_zeros, 25)
         
     return avg
     
-    
+# Applies yolo object detection, and draws labelled bounding boxes    
 def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
     # Crop the frame to run the detection on
     cropped_frame = frame[crop_y[0]:crop_y[1], crop_x[0]:crop_x[1]]
@@ -188,12 +193,11 @@ def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
         width = box[2]
         height = box[3]
         box = depth_points[top: top + height, left:left + width]
-        plot_histogram(box, 'box_histogram.png')
         if box.shape[0] == 0 or box.shape[1] == 0:
             continue
-        
+        print(box.shape)
         depth = get_box_depth(box, is_sparse, use_fg_mask)
-
+        
         if not np.isnan(depth):
             drawPred(frame, classes[classIDs[detected_object]],
                      left, top, left + width, top + height, (255, 178, 50), depth)

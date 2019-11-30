@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-feature_object = cv2.ORB_create(1000)
-feature_object.setFastThreshold(0)
+orb = cv2.ORB_create(nfeatures=100000)
+orb.setFastThreshold(0)
 
 MIN_MATCH_COUNT = 10
 FLANN_INDEX_LSH = 6
@@ -29,8 +29,8 @@ def detect_matches(imgL, imgR, plot_info=False):
 
     # get best matches (and second best matches)
     # using a k Nearst Neighboour (kNN) radial matcher with k=2
-    keypointsL, descriptors1 = feature_object.detectAndCompute(imgL, None)
-    keypointsR, descriptors2 = feature_object.detectAndCompute(imgR, None)
+    keypointsL, descriptors1 = orb.detectAndCompute(imgL, None)
+    keypointsR, descriptors2 = orb.detectAndCompute(imgR, None)
 
     matches = []
     if (len(descriptors1) > 0):

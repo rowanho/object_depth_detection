@@ -90,7 +90,6 @@ def post_process_for_bg(mask):
     # Only keep components larger than min_num
     for i in range(0, nb_components):
         if sizes[i] >= min_num:
-            print("true")
             cleaned_img[output == i + 1] = 255
             
     kernel = np.ones((7,7),np.uint8)        
@@ -110,8 +109,7 @@ def preprocess_sparse(img):
 
 def get_depth_points(imgL, imgR, is_sparse, use_fg_mask):
 
-    # remember to convert to grayscale (as the disparity matching works on grayscale)
-    # N.B. need to do for both as both are 3-channel images
+    # convert to grayscale
 
     grayL = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
     grayR = cv2.cvtColor(imgR, cv2.COLOR_BGR2GRAY)
@@ -149,6 +147,7 @@ def get_depth_points(imgL, imgR, is_sparse, use_fg_mask):
 
     cv2.imshow('disparity', (disparity_scaled *
                              (256 / max_disparity)).astype(np.uint8))
+                         
     points = project_disparity_to_2d_with_depth(
         disparity_scaled, max_disparity)
     return points
