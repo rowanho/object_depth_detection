@@ -2,7 +2,6 @@ import math
 
 import cv2
 import numpy as np
-from scipy import stats
 
 from plots2 import plot_histogram
 # Draw the predicted bounding box on the specified image
@@ -150,19 +149,22 @@ def preprocess(img):
     return processed_img
 
 # Estimates the depth of the object inside the box
-def get_box_depth(box, is_sparse, use_fg_mask):
+def depth_estimate(box, is_sparse, use_fg_mask):
     avg = 0
     if is_sparse:
         non_zeros = box[np.nonzero(box)]
         if non_zeros.shape[0] == 0:
             return 0
-        avg = np.avg(non_zeros)
+        histogram = np.histogram(non_zeros)
+        ind = np.argpartition(histogram[0],-1)[-1]
+        avg = histogram[1][ind]
     else:
         non_zeros = box[np.nonzero(box)]
         if non_zeros.shape[0] == 0:
             return 0
-        avg = np.percentile(non_zeros, 25)
-        
+        histogram = np.histogram(non_zeros)
+        ind = np.argpartition(histogram[0],-1)[-1:]
+        avg = histogram[1][ind][0]
     return avg
     
 # Applies yolo object detection, and draws labelled bounding boxes    
@@ -192,12 +194,12 @@ def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
         top = box[1] + crop_y[0]
         width = box[2]
         height = box[3]
-        box = depth_points[top: top + height, left:left + width]
-        if box.shape[0] == 0 or box.shape[1] == 0:
-            continue
-        print(box.shape)
-        depth = get_box_depth(box, is_sparse, use_fg_mask)
         
+        box_depth = depth_points[top: top + height, left:left + width]
+        if box_depth.shape[0] == 0 or box_depth.shape[1] == 0:
+            continue
+        depth = depth_estimate(box_depth, is_sparse, use_fg_mask)
+
         if not np.isnan(depth):
             drawPred(frame, classes[classIDs[detected_object]],
                      left, top, left + width, top + height, (255, 178, 50), depth)
