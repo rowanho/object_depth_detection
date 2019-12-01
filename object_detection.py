@@ -185,6 +185,7 @@ def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
     classIDs, confidences, boxes = postprocess(
         cropped_frame, results, confThreshold, nmsThreshold)
 
+    closest = 1000
     # draw resulting detections on image
     for detected_object in range(0, len(boxes)):
         if classIDs[detected_object] >= len(classes):
@@ -199,7 +200,13 @@ def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
         if box_depth.shape[0] == 0 or box_depth.shape[1] == 0:
             continue
         depth = depth_estimate(box_depth, is_sparse, use_fg_mask)
-
+        if depth < closest:
+            closest = depth
         if not np.isnan(depth):
             drawPred(frame, classes[classIDs[detected_object]],
                      left, top, left + width, top + height, (255, 178, 50), depth)
+    if closest == 1000:
+        print(': nearest detected scene object (na m)')
+    else:
+        print(': nearest detected scene object (%2.1fm)' % closest)
+        

@@ -56,16 +56,14 @@ for filename_left in left_file_list:
         imgL = cv2.imread(full_path_filename_left, cv2.IMREAD_COLOR)
         imgR = cv2.imread(full_path_filename_right, cv2.IMREAD_COLOR)
         cv2.imshow('left image', imgL)
-        print(args.is_sparse)
-        print(args.use_fg_mask)
+        print(filename_left)
+        print(filename_right, end =" ")
         depth_points = get_depth_points(imgL, imgR, args.is_sparse, args.use_fg_mask)
 
         apply_yolo(imgL, depth_points, (0, 390), 
                   (0, np.size(imgL, 1)), args.is_sparse, args.use_fg_mask)
         cv2.imshow('Image with detection', imgL)
 
-        print("-- files loaded successfully")
-        print()
         # wait 40ms (i.e. 1000ms / 25 fps = 40 ms)
         key = cv2.waitKey(40 * (not(pause_playback))) & 0xFF
         if (key == ord('x')):       # exit
