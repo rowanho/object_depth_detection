@@ -3,7 +3,7 @@ import numpy as np
 
 from feature_points import get_sparse_disp
 max_disparity = 64
-left_matcher = cv2.StereoSGBM_create(0, max_disparity, 21)
+left_matcher = cv2.StereoSGBM_create(0, max_disparity, 9,P1 = 5, P2 = 5)# mode=cv2.StereoSGBM_MODE_HH)
 right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
 wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=left_matcher)
 wls_filter.setLambda(8000)
@@ -64,7 +64,7 @@ def disp_with_wls_filtering(imgL, imgR):
 # Preprocessing for dense implementation
 def preprocess_dense(img):
     img = np.power(img, 0.95).astype('uint8')
-    clahe = cv2.createCLAHE(clipLimit=0.5, tileGridSize=(8,8))
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
     img = clahe.apply(img)
     
     
@@ -147,6 +147,9 @@ def get_depth_points(imgL, imgR, is_sparse, use_fg_mask):
 
     cv2.imshow('disparity', (disparity_scaled *
                              (256 / max_disparity)).astype(np.uint8))
+    kernel = np.ones((5,5),np.uint8)
+    cv2.imwrite('disparity_sparse.png', cv2.dilate((disparity_scaled *
+                             (256 / max_disparity)).astype(np.uint8),kernel,iterations = 1))
                          
     points = project_disparity_to_2d_with_depth(
         disparity_scaled, max_disparity)

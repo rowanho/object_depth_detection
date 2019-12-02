@@ -120,8 +120,8 @@ classes = [
     'aeroplane',
     'bus',
     'train',
-    'truck',
-    'boat']
+    'truck'
+    ]
 
 # load configuration and weight files for the model and load the network
 # using them
@@ -140,7 +140,7 @@ net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 # Power transform + histogram equalization
 def preprocess(img):
     img = np.power(img, 0.95).astype('uint8')
-    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8,8))
+    clahe = cv2.createCLAHE(clipLimit=1.5, tileGridSize=(8,8))
     b, g, r = cv2.split(img)
     red = clahe.apply(r)
     green = clahe.apply(g)
@@ -155,17 +155,23 @@ def depth_estimate(box, is_sparse, use_fg_mask):
         non_zeros = box[np.nonzero(box)]
         if non_zeros.shape[0] == 0:
             return 0
-        histogram = np.histogram(non_zeros)
-        ind = np.argpartition(histogram[0],-1)[-1]
-        avg = histogram[1][ind]
-    else:
-        non_zeros = box[np.nonzero(box)]
+        else:
+            return np.percentile(non_zeros, 25)
+    else:  
+        non_zeros = box[np.nonzero(box)]  
         if non_zeros.shape[0] == 0:
             return 0
+        mean = np.mean(non_zeros)
+        tf = np.percentile(non_zeros, 25)
         histogram = np.histogram(non_zeros)
         ind = np.argpartition(histogram[0],-1)[-1:]
         avg = histogram[1][ind][0]
-    return avg
+        with open('dense_data.csv', 'a') as file:
+            file.write(str(mean) + ', '  + str(tf) + ', ' + str(avg) + '\n')
+        
+    #    with open('dense_data.csv','a') as file:
+    #        file.write(str(mean) + ', ' + str(tf) + ', ' + str(avg) + '\n')
+    return avg 
     
 # Applies yolo object detection, and draws labelled bounding boxes    
 def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
@@ -200,11 +206,17 @@ def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
         if box_depth.shape[0] == 0 or box_depth.shape[1] == 0:
             continue
         depth = depth_estimate(box_depth, is_sparse, use_fg_mask)
+        # An esitmated depth of 0 usually is due to noise in the depth map
+        if depth == 0:
+            continue
         if depth < closest:
             closest = depth
-        if not np.isnan(depth):
-            drawPred(frame, classes[classIDs[detected_object]],
-                     left, top, left + width, top + height, (255, 178, 50), depth)
+        class_name =  classes[classIDs[detected_object]]
+        # These classes aren't relevant in our dataset, and may just generate false positives
+        if class_name == 'train' or class_name == 'aeroplane':
+            continue 
+        drawPred(frame, class_name,
+                 left, top, left + width, top + height, (255, 178, 50), depth)
     if closest == 1000:
         print(': nearest detected scene object (na m)')
     else:

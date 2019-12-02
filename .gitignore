@@ -6,3 +6,4 @@ stereo_disparity.py
 surf_detection.py
 
 *.png
+*.csv

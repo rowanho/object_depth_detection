@@ -3,6 +3,8 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
 from feature_points import detect_matches
 
@@ -91,7 +93,20 @@ def stats_for_specific_img():
               (0, np.size(imgL, 1)), False, False)
     cv2.imwrite('boxes.png', imgL)
 
+def plot_distributions():
+    data = pd.read_csv('dense_data.csv', names = ['Mean', '25th Percentile', 'Histogram Peak'])
+    data = data[data['Mean'] > 0.0]   
+    data = data[data['25th Percentile'] > 0.0]   
+    data = data[data['Histogram Peak'] > 0.0]   
+    sns.kdeplot(data[data.columns[0]],bw=.05)
+    sns.kdeplot(data[data.columns[1]],bw=.05)
+    sns.kdeplot(data[data.columns[2]],bw=.05)
+    plt.xlabel('Depth Prediction (metres)')
+    plt.ylabel('Relative Frequency')
+    plt.savefig('distr.png')
+    
 if __name__ == "__main__":
     #reduce_brightness()    
     #plot_feature_points()
-    stats_for_specific_img()
+    #stats_for_specific_img()
+    plot_distributions()

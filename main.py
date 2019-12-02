@@ -50,7 +50,6 @@ for filename_left in left_file_list:
         full_path_directory_left, filename_left)
     full_path_filename_right = os.path.join(
         full_path_directory_right, filename_right)
-
     if ('.png' in filename_left) and (
             os.path.isfile(full_path_filename_right)):
         imgL = cv2.imread(full_path_filename_left, cv2.IMREAD_COLOR)
