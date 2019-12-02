@@ -137,6 +137,7 @@ net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
 # fail gracefully if OpenCL not available)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
+# Preprocesses the image for better obejct detection
 # Power transform + histogram equalization
 def preprocess(img):
     img = np.power(img, 0.95).astype('uint8')
@@ -149,7 +150,8 @@ def preprocess(img):
     return processed_img
 
 # Estimates the depth of the object inside the box
-def depth_estimate(box, is_sparse, use_fg_mask):
+# Use different methods based on whether we are using sparse disparity
+def depth_estimate(box, is_sparse):
     avg = 0
     if is_sparse:
         non_zeros = box[np.nonzero(box)]

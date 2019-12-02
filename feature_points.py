@@ -19,21 +19,16 @@ matcher = cv2.FlannBasedMatcher(index_params, search_params)
 # Takes in grayscale images imgL and imgR
 # Returns keypoints and the 'good' matches between them, using ORB feature
 # point detection
-
-
 def detect_matches(imgL, imgR, plot_info=False):
-    # if using ORB points use FLANN object that can handle binary descriptors
-    # taken from: https://docs.opencv.org/3.3.0/dc/dc3/tutorial_py_matcher.html
-    # N.B. "commented values are recommended as per the docs,
-    # but it didn't provide required results in some cases"
-
-    # get best matches (and second best matches)
-    # using a k Nearst Neighboour (kNN) radial matcher with k=2
+    
+    # Detect orb feature points
     keypointsL, descriptors1 = orb.detectAndCompute(imgL, None)
     keypointsR, descriptors2 = orb.detectAndCompute(imgR, None)
 
     matches = []
     if (len(descriptors1) > 0):
+        # get best matches (and second best matches)
+        # using a k Nearst Neighboour (kNN) radial matcher with k=2
         matches = matcher.knnMatch(descriptors1, descriptors2, k=2)
     # Need to isolate only good matches, so create a mask
 
@@ -84,7 +79,7 @@ def detect_matches(imgL, imgR, plot_info=False):
         return keypointsL, keypointsR, good_matches
 
 
-# returns the disparity map
+# Computes the disparity map
 def get_sparse_disp(imgL, imgR):
     keypointsL, keypointsR, good_matches = detect_matches(imgL, imgR)
 
@@ -93,5 +88,6 @@ def get_sparse_disp(imgL, imgR):
         xl = int(keypointsL[m.queryIdx].pt[0])
         yl = int(keypointsL[m.queryIdx].pt[1])
         xr = int(keypointsR[m.trainIdx].pt[0])
+        # Disparity is the distance between the corresponding keypoints in the left and right images
         disp_img[yl, xl] = abs(xl - xr)
     return disp_img

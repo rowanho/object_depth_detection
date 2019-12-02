@@ -20,7 +20,7 @@ image_centre_h = 262.0
 image_centre_w = 474.5
 
 
-
+# Create the background subtractor object
 back_sub = cv2.createBackgroundSubtractorMOG2()
 
 # Gets the foreground mask
@@ -29,15 +29,13 @@ def get_fg_mask(img):
 
 
 # Numpy vectorised function to calcuate depth
-
-
 def depth(disp, f, B):
     if disp > 0:
         return (f * B) / disp
     else:
         return 0.0
 
-# Project a given disparity image to have 3d depth points
+# Project a given disparity image to have 2d depth points
 
 def project_disparity_to_2d_with_depth(disparity, max_disparity):
     f = camera_focal_length_px
@@ -51,7 +49,7 @@ def project_disparity_to_2d_with_depth(disparity, max_disparity):
     points = vec_depth(disparity, f, B)
     return points
 
-
+# Computes the disparity using a wls filtering method
 def disp_with_wls_filtering(imgL, imgR):
     displ = left_matcher.compute(imgL, imgR)
     dispr = right_matcher.compute(imgR, imgL)
@@ -70,10 +68,6 @@ def preprocess_dense(img):
     
     return img
     
-# Preprocess for background detection
-def preprocess_for_bg(img):
-    return img
-
 # Post processing for the background mask
 def post_process_for_bg(mask):
     # Remove noisy pieces of foreground
@@ -104,8 +98,6 @@ def preprocess_sparse(img):
     
 
 # Returns 2d points and 3d depth with format [x(2d),y(2d),z(3d)]
-# imgL - The left image
-# imgR - The right image
 
 def get_depth_points(imgL, imgR, is_sparse, use_fg_mask):
 
@@ -114,15 +106,13 @@ def get_depth_points(imgL, imgR, is_sparse, use_fg_mask):
     grayL = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
     grayR = cv2.cvtColor(imgR, cv2.COLOR_BGR2GRAY)
 
-    # perform preprocessing - raise to the power, as this subjectively appears
-    # to improve subsequent disparity calculation
+    # Different methods based on sparse and dense implementations
     if is_sparse:
         grayL = preprocess_sparse(grayL)
         grayR = preprocess_sparse(grayR)
         disparity = get_sparse_disp(grayL, grayR)
 
     else:
-        
         grayL = preprocess_dense(grayL)
         grayR = preprocess_dense(grayR)
         # Disparity using left and right matching + wls filter
@@ -132,7 +122,7 @@ def get_depth_points(imgL, imgR, is_sparse, use_fg_mask):
         cv2.filterSpeckles(disparity, 0, 4000, max_disparity - dispNoiseFilter)
         
         if use_fg_mask:
-            fg_mask = get_fg_mask(preprocess_for_bg(imgL))
+            fg_mask = get_fg_mask(imgL)
             fg_mask = post_process_for_bg(fg_mask)
             # Only keep foreground values
             disparity = (fg_mask/255).astype(np.uint8) * disparity 
