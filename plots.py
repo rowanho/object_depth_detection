@@ -92,18 +92,34 @@ def stats_for_specific_img():
     apply_yolo(imgL, depth_points, (0, 390), 
               (0, np.size(imgL, 1)), False, False)
     cv2.imwrite('boxes.png', imgL)
-
+    
 def plot_distributions():
-    data = pd.read_csv('dense_data.csv', names = ['Mean', '25th Percentile', 'Histogram Peak'])
+    data = pd.read_csv('dense_data.csv', names = ['Mean', 'Median', 'Mode', 'Kmeans Lower Cluster Mean'])
     data = data[data['Mean'] > 0.0]   
     data = data[data['25th Percentile'] > 0.0]   
     data = data[data['Histogram Peak'] > 0.0]   
     sns.kdeplot(data[data.columns[0]],bw=.05)
     sns.kdeplot(data[data.columns[1]],bw=.05)
     sns.kdeplot(data[data.columns[2]],bw=.05)
+    sns.kdeplot(data[data.columns[3]],bw=.05)
+
     plt.xlabel('Depth Prediction (metres)')
     plt.ylabel('Relative Frequency')
     plt.savefig('distr.png')
+    
+def plot_distributions():
+    dense_data = pd.read_csv('dense.csv', names = ['Dense Stereo (25th Percentile)'])
+    sparse_data = pd.read_csv('sparse.csv', names = ['Sparse Stereo (25th Percentile)'])
+
+    dense_data = dense_data[dense_data['Dense Stereo (25th Percentile)'] > 0.0]   
+    sparse_data = sparse_data[sparse_data['Sparse Stereo (25th Percentile)'] > 0.0]   
+
+    sns.kdeplot(dense_data[dense_data.columns[0]],bw=.05)
+    sns.kdeplot(sparse_data[sparse_data.columns[0]],bw=.05)
+
+    plt.xlabel('Depth Prediction (metres)')
+    plt.ylabel('Relative Frequency')
+    plt.savefig('distr_comp.png')
     
 if __name__ == "__main__":
     #reduce_brightness()    

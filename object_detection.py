@@ -149,32 +149,62 @@ def preprocess(img):
     processed_img = cv2.merge((blue, green, red))
     return processed_img
 
+
+def get_kmeans(box):
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    flags = cv2.KMEANS_RANDOM_CENTERS    
+    box = box.astype(np.float32)
+    box = np.reshape(box, (-1, 1))
+    
+    # If there are too few elements
+    if box.size < 2:
+        return np.median(box)
+    compactness,labels,centers = cv2.kmeans(box,2,None,criteria,10,flags)
+    print(box.shape)
+    print(labels.shape)
+
+    c0 = box[labels==0]
+    c1 = box[labels==1]
+    # Take the lower center
+    m0 = np.median(c0)
+    m1 = np.median(c1)
+    return min(m0, m1)
+    
 # Estimates the depth of the object inside the box
 # Use different methods based on whether we are using sparse disparity
 def depth_estimate(box, is_sparse):
-    avg = 0
+    res = 0
     if is_sparse:
         non_zeros = box[np.nonzero(box)]
         if non_zeros.shape[0] == 0:
-            return 0
+            res = 0
         else:
-            return np.percentile(non_zeros, 25)
+            # Apply KMeans
+            res = get_kmeans(non_zeros)
+        with open('sparse.csv', 'a') as file:
+            file.write(str(res) + '\n')
+        return res
     else:  
         non_zeros = box[np.nonzero(box)]  
         if non_zeros.shape[0] == 0:
-            return 0
-        mean = np.mean(non_zeros)
-        tf = np.percentile(non_zeros, 25)
-        histogram = np.histogram(non_zeros)
-        ind = np.argpartition(histogram[0],-1)[-1:]
-        avg = histogram[1][ind][0]
-        with open('dense_data.csv', 'a') as file:
-            file.write(str(mean) + ', '  + str(tf) + ', ' + str(avg) + '\n')
+            res = 0
+        else:
+            mean = np.mean(non_zeros)
+            med = np.median(non_zeros)
+            histogram = np.histogram(non_zeros)
+            ind = np.argpartition(histogram[0],-1)[-1:]
+            mode = histogram[1][ind][0]
         
+            # Apply KMeans
+            res = get_kmeans(non_zeros)
+            with open('dense.csv', 'a') as file:
+                file.write(str(res) + '\n')
+            with open('dense_data.csv', 'a') as file:
+                file.write(str(mean) + ', '  + str(med) + ', ' + str(mode) + ', ' + str(res) + '\n')
+            
     #    with open('dense_data.csv','a') as file:
     #        file.write(str(mean) + ', ' + str(tf) + ', ' + str(avg) + '\n')
-    return avg 
-    
+    return res
 # Applies yolo object detection, and draws labelled bounding boxes    
 def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
     # Crop the frame to run the detection on
@@ -207,7 +237,7 @@ def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
         box_depth = depth_points[top: top + height, left:left + width]
         if box_depth.shape[0] == 0 or box_depth.shape[1] == 0:
             continue
-        depth = depth_estimate(box_depth, is_sparse, use_fg_mask)
+        depth = depth_estimate(box_depth, is_sparse)
         # An esitmated depth of 0 usually is due to noise in the depth map
         if depth == 0:
             continue

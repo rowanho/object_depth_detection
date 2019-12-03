@@ -54,21 +54,21 @@ for filename_left in left_file_list:
             os.path.isfile(full_path_filename_right)):
         imgL = cv2.imread(full_path_filename_left, cv2.IMREAD_COLOR)
         imgR = cv2.imread(full_path_filename_right, cv2.IMREAD_COLOR)
-        cv2.imshow('left image', imgL)
+        #cv2.imshow('left image', imgL)
         print(filename_left)
         print(filename_right, end =" ")
         depth_points = get_depth_points(imgL, imgR, args.is_sparse, args.use_fg_mask)
 
         apply_yolo(imgL, depth_points, (0, 390), 
                   (0, np.size(imgL, 1)), args.is_sparse, args.use_fg_mask)
-        cv2.imshow('Image with detection', imgL)
+        #cv2.imshow('Image with detection', imgL)
 
         # wait 40ms (i.e. 1000ms / 25 fps = 40 ms)
-        key = cv2.waitKey(40 * (not(pause_playback))) & 0xFF
-        if (key == ord('x')):       # exit
-            break  # exit
-        elif (key == ord(' ')):     # pause (on next frame)
-            pause_playback = not(pause_playback)
+        #key = cv2.waitKey(40 * (not(pause_playback))) & 0xFF
+        #if (key == ord('x')):       # exit
+        #    break  # exit
+        #elif (key == ord(' ')):     # pause (on next frame)
+        #    pause_playback = not(pause_playback)
     else:
         print("-- files skipped (perhaps one is missing or not PNG)")
         print()
