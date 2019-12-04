@@ -134,9 +134,13 @@ def get_depth_points(imgL, imgR, is_sparse, use_fg_mask):
         disparity_scaled = disparity
     else:
         disparity_scaled = (disparity / 16).astype(np.uint8)
-
-    kernel = np.ones((5,5),np.uint8)
-                         
+    if is_sparse:
+        kernel = np.ones((5,5),np.uint8)
+        cv2.imshow('Sparse disparity', cv2.dilate((disparity_scaled *
+                             (256 / max_disparity)).astype(np.uint8),kernel,iterations = 1))
+    else:
+        cv2.imshow('Dense disparity', (disparity_scaled *
+                                 (256 / max_disparity)).astype(np.uint8))                     
     points = project_disparity_to_2d_with_depth(
         disparity_scaled, max_disparity)
     return points

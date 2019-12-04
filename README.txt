@@ -27,3 +27,10 @@ To use MOG2 background subtraction
 
 Both flags also work together:
 	> python3 main.py --is_sparse=true --use_fg_mask=true
+
+
+
+Video information:
+
+The video shows my program running with the sparse disparity method, without MOG2 background subtraction. 
+The disparity map is dilated for visibility of feature points.
