@@ -163,8 +163,8 @@ def get_kmeans(box):
     c0 = box[labels==0]
     c1 = box[labels==1]
     # Take the lower center
-    m0 = np.median(c0)
-    m1 = np.median(c1)
+    m0 = np.mean(c0)
+    m1 = np.mean(c1)
     return min(m0, m1)
     
 # Estimates the depth of the object inside the box
