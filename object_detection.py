@@ -23,9 +23,9 @@ def drawPred(image, class_name, left, top, right, bottom, colour, depth):
     top = max(top, labelSize[1])
     
     cv2.rectangle(image,
-                 (left, bottom + round(1.0 *labelSize[1])),
+                 (left, bottom + round(0.5 *labelSize[1])),
                  (left + round(1.0 * labelSize[0]), 
-                  bottom +baseline - round(1.5 *labelSize[1])),
+                  bottom +baseline - round(1.3 *labelSize[1])),
                   (255,255,255),
                   cv2.FILLED)
     cv2.putText(image, label, (left, bottom),
@@ -111,6 +111,8 @@ inpHeight = 416      # Height of network's input image
 config_file = 'yolov3.cfg'
 weights_file = 'yolov3.weights'
 
+# Relevant YOLO classes
+
 classes = [
     'person',
     'bicycle',
@@ -121,6 +123,15 @@ classes = [
     'train',
     'truck'
     ]
+
+name_map = {
+    'person':'pedestrian',
+    'bicycle': 'vehicle',
+    'car': 'vehicle',
+    'motorbike':'vehicle',
+    'bus': 'vehicle',
+    'truck': 'vehicle'
+}
 
 # load configuration and weight files for the model and load the network
 # using them
@@ -148,6 +159,7 @@ def preprocess(img):
     processed_img = cv2.merge((blue, green, red))
     return processed_img
 
+# Kmeans estimation of foreground depth
 
 def get_kmeans(box):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
@@ -218,10 +230,10 @@ def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
         if depth < closest:
             closest = depth
         class_name =  classes[classIDs[detected_object]]
-        # These classes aren't relevant in our dataset, and may just generate false positives
-        if class_name == 'train' or class_name == 'aeroplane':
-            continue 
-        drawPred(frame, class_name,
+        
+        if class_name not in name_map:
+            continue
+        drawPred(frame, name_map[class_name],
                  left, top, left + width, top + height, (255, 178, 50), depth)
     if closest == 1000:
         print(': nearest detected scene object (na m)')

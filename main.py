@@ -54,7 +54,6 @@ for filename_left in left_file_list:
             os.path.isfile(full_path_filename_right)):
         imgL = cv2.imread(full_path_filename_left, cv2.IMREAD_COLOR)
         imgR = cv2.imread(full_path_filename_right, cv2.IMREAD_COLOR)
-        cv2.imshow('left image', imgL)
         print(filename_left)
         print(filename_right, end =" ")
         depth_points = get_depth_points(imgL, imgR, args.is_sparse, args.use_fg_mask)
