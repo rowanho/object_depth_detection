@@ -3,7 +3,6 @@ import math
 import cv2
 import numpy as np
 
-from plots2 import plot_histogram
 # Draw the predicted bounding box on the specified image
 # image: image detection performed on
 # class_name: string name of detected object_detection
@@ -160,8 +159,6 @@ def get_kmeans(box):
     if box.size < 2:
         return np.median(box)
     compactness,labels,centers = cv2.kmeans(box,2,None,criteria,10,flags)
-    print(box.shape)
-    print(labels.shape)
 
     c0 = box[labels==0]
     c1 = box[labels==1]
@@ -172,39 +169,16 @@ def get_kmeans(box):
     
 # Estimates the depth of the object inside the box
 # Use different methods based on whether we are using sparse disparity
-def depth_estimate(box, is_sparse):
+def depth_estimate(box):
     res = 0
-    if is_sparse:
-        non_zeros = box[np.nonzero(box)]
-        if non_zeros.shape[0] == 0:
-            res = 0
-        else:
-            # Apply KMeans
-            res = get_kmeans(non_zeros)
-        with open('sparse.csv', 'a') as file:
-            file.write(str(res) + '\n')
-        return res
-    else:  
-        non_zeros = box[np.nonzero(box)]  
-        if non_zeros.shape[0] == 0:
-            res = 0
-        else:
-            mean = np.mean(non_zeros)
-            med = np.median(non_zeros)
-            histogram = np.histogram(non_zeros)
-            ind = np.argpartition(histogram[0],-1)[-1:]
-            mode = histogram[1][ind][0]
-        
-            # Apply KMeans
-            res = get_kmeans(non_zeros)
-            with open('dense.csv', 'a') as file:
-                file.write(str(res) + '\n')
-            with open('dense_data.csv', 'a') as file:
-                file.write(str(mean) + ', '  + str(med) + ', ' + str(mode) + ', ' + str(res) + '\n')
-            
-    #    with open('dense_data.csv','a') as file:
-    #        file.write(str(mean) + ', ' + str(tf) + ', ' + str(avg) + '\n')
+    non_zeros = box[np.nonzero(box)]
+    if non_zeros.shape[0] == 0:
+        res = 0
+    else:
+        # Apply KMeans
+        res = get_kmeans(non_zeros)
     return res
+            
 # Applies yolo object detection, and draws labelled bounding boxes    
 def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
     # Crop the frame to run the detection on
@@ -237,7 +211,7 @@ def apply_yolo(frame, depth_points, crop_y, crop_x, is_sparse, use_fg_mask):
         box_depth = depth_points[top: top + height, left:left + width]
         if box_depth.shape[0] == 0 or box_depth.shape[1] == 0:
             continue
-        depth = depth_estimate(box_depth, is_sparse)
+        depth = depth_estimate(box_depth)
         # An esitmated depth of 0 usually is due to noise in the depth map
         if depth == 0:
             continue
