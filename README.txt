@@ -4,8 +4,12 @@ In main.py:
 
 Change variable "master_path_to_dataset" to the path of the intended dataset.
 
-On lab linux environment:
+The following files also need to be in the directory:
+	yolov3.cfg
+	yolo3.weights
 
+
+On lab linux environment, run:
 	> opencv4.1.1.init	
 	> python3 main.py
 
@@ -16,7 +20,8 @@ Run:
 
 To use the sparse disparity method instead of dense
 
-Run    > python3 main.py --use_fg_mask=true
+Run:    
+	> python3 main.py --use_fg_mask=true
 
 To use MOG2 background subtraction
 
