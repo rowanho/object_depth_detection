@@ -11,28 +11,24 @@ The following files also need to be in the directory:
 	yolo3.weights
 
 
-On lab linux environment, run:
+To run the program:
 ```
-	> opencv4.1.1.init	
-	> python3 main.py
+> python main.py
 ```
 There are also additional command line flags to use alternative implementation techniques.
 
-Run:
+To use the sparse disparity method instead of dense:
 ```
-	> python3 main.py --is_sparse=true
+> python3 main.py --is_sparse=true
 ```
-To use the sparse disparity method instead of dense
 
-Run:   
+To use MOG2 background subtraction:
 ```
-	> python3 main.py --use_fg_mask=true
+> python3 main.py --use_fg_mask=true
 ```
-To use MOG2 background subtraction
 
 Both flags also work together:
 ```
-	> python3 main.py --is_sparse=true --use_fg_mask=true
-
+> python3 main.py --is_sparse=true --use_fg_mask=true
 ```
 
