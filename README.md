@@ -12,27 +12,27 @@ The following files also need to be in the directory:
 
 
 On lab linux environment, run:
+```
 	> opencv4.1.1.init	
 	> python3 main.py
-
+```
 There are also additional command line flags to use alternative implementation techniques.
 
 Run:
+```
 	> python3 main.py --is_sparse=true
-
+```
 To use the sparse disparity method instead of dense
 
-Run:    
+Run:   
+```
 	> python3 main.py --use_fg_mask=true
-
+```
 To use MOG2 background subtraction
 
 Both flags also work together:
+```
 	> python3 main.py --is_sparse=true --use_fg_mask=true
 
+```
 
-
-Video information:
-
-The video shows my program running with the sparse disparity method, without MOG2 background subtraction. 
-The disparity map is dilated for visibility of feature points.
