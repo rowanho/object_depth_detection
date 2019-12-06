@@ -38,7 +38,6 @@ parser.add_argument('--use_fg_mask',  type=bool, default=False,
 args = parser.parse_args()
 # Loop through files
 for filename_left in left_file_list:
-
     if ((len(skip_forward_file_pattern) > 0) and not(
             skip_forward_file_pattern in filename_left)):
         continue
@@ -56,12 +55,15 @@ for filename_left in left_file_list:
         imgR = cv2.imread(full_path_filename_right, cv2.IMREAD_COLOR)
         print(filename_left)
         print(filename_right, end =" ")
+        
+        # Get depth map
         depth_points = get_depth_points(imgL, imgR, args.is_sparse, args.use_fg_mask)
 
+        # Draw bounding boxes
         apply_yolo(imgL, depth_points, (0, 390), 
                   (0, np.size(imgL, 1)), args.is_sparse, args.use_fg_mask)
         cv2.imshow('Image with detection', imgL)
-
+        
         # wait 40ms (i.e. 1000ms / 25 fps = 40 ms)
         key = cv2.waitKey(40 * (not(pause_playback))) & 0xFF
         if (key == ord('x')):       # exit
@@ -71,7 +73,6 @@ for filename_left in left_file_list:
     else:
         print("-- files skipped (perhaps one is missing or not PNG)")
         print()
-
 # close all windows
-
+out.release()
 cv2.destroyAllWindows()
