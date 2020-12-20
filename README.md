@@ -1,4 +1,4 @@
-# Computer Vision Assignment
+# Object Depth Detection Using Stereo Cameras
 
 Instructions For Running the Program
 
