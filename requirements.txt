@@ -11,7 +11,7 @@ jupyter-client==5.3.4
 jupyter-core==4.6.1
 kiwisolver==1.1.0
 numpy==1.17.3
-opencv-contrib-python==4.1.1.26
+opencv-contrib-python==4.2.0.32
 pandas==0.25.3
 parso==0.5.1
 pexpect==4.7.0
